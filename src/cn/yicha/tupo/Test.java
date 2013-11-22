@@ -7,7 +7,7 @@ import java.util.List;
 
 import cn.yicha.tupo.http.HttpClientUtil;
 import cn.yicha.tupo.http.file.FileFactory;
-import cn.yicha.tupo.p2sp.entity.P2SPDownload;
+import cn.yicha.tupo.p2sp.P2SPDownload;
 import cn.yicha.tupo.p2sp.entity.UriInfo;
 
 public class Test {
@@ -18,10 +18,8 @@ public class Test {
 //		HttpClientUtil.downloadFile("http://localhost/v/t.rar", "F:/z.rar");
 		
 		List<String> urls = new ArrayList<String>();
-		urls.add("http://localhost/v/t.rar");
-		urls.add("http://localhost/v/t.rar");
-		//urls.add("http://localhost/v/t.rar");
-		//urls.add("http://localhost/v/t.rar");
+		urls.add("http://localhost/v/t.jar");
+		urls.add("http://localhost/v/t.jar");
 		P2SPDownload p2sp = new P2SPDownload(urls , "F:/m.rar");
 		p2sp.start();
 		

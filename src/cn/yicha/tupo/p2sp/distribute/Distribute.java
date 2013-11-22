@@ -14,6 +14,8 @@ import cn.yicha.tupo.p2sp.entity.UriInfo;
  */
 public interface Distribute {
 
+	public long getFileSize();
+	
 	public void addUri(UriInfo uri);
 	
 	public void deleteUri(UriInfo uri);

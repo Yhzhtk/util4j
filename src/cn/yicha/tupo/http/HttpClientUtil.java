@@ -18,6 +18,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
+import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
+
 public class HttpClientUtil {
 
 	static CloseableHttpClient httpclient;
@@ -25,8 +27,8 @@ public class HttpClientUtil {
 	static {
 		// http 连接池
 		PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-		connManager.setMaxTotal(100);
-		connManager.setDefaultMaxPerRoute(10);
+		connManager.setMaxTotal(Integer.MAX_VALUE);
+		connManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
 		SocketConfig defaultSocketConfig = SocketConfig.custom()
 				.setTcpNoDelay(true).setSoKeepAlive(true)
 				.setSoReuseAddress(true).build();
@@ -162,6 +164,63 @@ public class HttpClientUtil {
 	}
 
 	/**
+	 * 以二分空闲区块下载文件
+	 * @param url
+	 * @param bisect
+	 * @param mbb
+	 * @param startLoc
+	 * @param endLoc
+	 * @return
+	 */
+	public static int downloadFileJ(String url, BisectDistribute bisect, MappedByteBuffer mbb, long startLoc,
+			long endLoc) {
+		try {
+			HttpGet httpGet = new HttpGet(url);
+
+			// 拼接请求范围
+			StringBuffer sb = new StringBuffer();
+			sb.append("bytes=").append(startLoc).append("-");
+			if (endLoc > startLoc) {
+				sb.append(endLoc);
+			}
+			httpGet.setHeader("Range", sb.toString());
+
+			CloseableHttpResponse response1 = httpclient.execute(httpGet);
+			//System.out.println(response1.getStatusLine());
+			if (response1.getStatusLine().getStatusCode() == 206) {
+				HttpEntity entity = response1.getEntity();
+				try {
+					int loc = (int) startLoc;
+					mbb.position(loc);
+					//rf.seek(startLoc);
+					InputStream is = entity.getContent();
+					int length = 0;
+					int blen = 0;
+					byte[] bytes = new byte[bisect.getBaseSize()];
+					while ((blen = is.read(bytes)) != -1) {
+						// rf.write(bytes, 0, blen);
+						mbb.put(bytes, 0, blen);
+						length += blen;
+						bisect.setBytesOk(loc, blen);
+						loc += blen;
+						if(bisect.hasBytesDown(loc)){
+							System.out.println("Break --- " + loc);
+							break;
+						}
+					}
+					return length;
+				} finally {
+					// 是否需要关闭
+					//response1.close();
+				}
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return -1;
+	}
+	
+	/**
 	 * 获取文件大小
 	 * 
 	 * @param url
@@ -169,8 +228,8 @@ public class HttpClientUtil {
 	 * @date:2013-11-19
 	 * @author:gudaihui
 	 */
-	public static long getFileSize(String url) {
-		long len = 0;
+	public static int getFileSize(String url) {
+		int len = 0;
 
 		HttpGet httpGet = new HttpGet(url);
 
