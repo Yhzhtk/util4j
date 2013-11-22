@@ -9,13 +9,10 @@ import java.nio.MappedByteBuffer;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
@@ -26,24 +23,26 @@ public class HttpClientUtil {
 	
 	static {
 		// http 连接池
-		PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-		connManager.setMaxTotal(Integer.MAX_VALUE);
-		connManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
-		SocketConfig defaultSocketConfig = SocketConfig.custom()
-				.setTcpNoDelay(true).setSoKeepAlive(true)
-				.setSoReuseAddress(true).build();
-		connManager.setDefaultSocketConfig(defaultSocketConfig);
+//		PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+//		connManager.setMaxTotal(Integer.MAX_VALUE);
+//		connManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
+//		SocketConfig defaultSocketConfig = SocketConfig.custom()
+//				.setTcpNoDelay(true).setSoKeepAlive(true)
+//				.setSoReuseAddress(true).build();
+//		connManager.setDefaultSocketConfig(defaultSocketConfig);
+//
+//		RequestConfig config = RequestConfig.custom().setConnectTimeout(5000)
+//				.setConnectionRequestTimeout(5000).setSocketTimeout(5000)
+//				.build();
 
-		RequestConfig config = RequestConfig.custom().setConnectTimeout(5000)
-				.setConnectionRequestTimeout(5000).setSocketTimeout(5000)
-				.build();
-
-		httpclient = HttpClients
-				.custom()
-				.setConnectionManager(connManager)
-				.setUserAgent(
-						"Mozilla/5.0 (Windows NT 5.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.41 Safari/537.36")
-				.setDefaultRequestConfig(config).build();
+//		httpclient = HttpClients
+//				.custom()
+//				//.setConnectionManager(connManager)
+//				.setUserAgent(
+//						"Mozilla/5.0 (Windows NT 5.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.41 Safari/537.36")
+//				.setDefaultRequestConfig(config).build();
+		httpclient = HttpClients.createDefault();
+		
 	}
 
 	/**
@@ -197,6 +196,8 @@ public class HttpClientUtil {
 					int length = 0;
 					int blen = 0;
 					byte[] bytes = new byte[bisect.getBaseSize()];
+					long s = System.currentTimeMillis();
+					int i = 0;
 					while ((blen = is.read(bytes)) != -1) {
 						// rf.write(bytes, 0, blen);
 						mbb.put(bytes, 0, blen);
@@ -206,6 +207,11 @@ public class HttpClientUtil {
 						if(bisect.hasBytesDown(loc)){
 							System.out.println("Break --- " + loc);
 							break;
+						}
+						long t = System.currentTimeMillis() - s;
+						if(t != 0 && t / 1000 % 2 == i){
+							System.out.println(Thread.currentThread().getName() + " loc:" + (loc + length) + " speed:" + (length * 1000 / t));
+							i = 1 - i;
 						}
 					}
 					return length;

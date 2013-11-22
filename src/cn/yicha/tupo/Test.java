@@ -1,26 +1,20 @@
 package cn.yicha.tupo;
 
 import java.io.IOException;
-import java.nio.MappedByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import cn.yicha.tupo.http.HttpClientUtil;
-import cn.yicha.tupo.http.file.FileFactory;
 import cn.yicha.tupo.p2sp.P2SPDownload;
-import cn.yicha.tupo.p2sp.entity.UriInfo;
 
 public class Test {
 
 	public static void main(String[] args) throws IOException {
-//		UriInfo uri = UriFactory.getUriInstance("http://localhost/v/t.jar");
-//		randomDown(uri, "F:/m.jar");
-//		HttpClientUtil.downloadFile("http://localhost/v/t.rar", "F:/z.rar");
 		
 		List<String> urls = new ArrayList<String>();
-		urls.add("http://localhost/v/t.jar");
-		urls.add("http://localhost/v/t.jar");
-		P2SPDownload p2sp = new P2SPDownload(urls , "F:/m.rar");
+		urls.add("http://mirror01.idc.hinet.net/CentOS/6.4/os/i386/Packages/bacula-storage-common-5.0.0-12.el6.i686.rpm");
+		urls.add("http://mirror.tversu.ru/centos/6.4/os/i386/Packages/bacula-storage-common-5.0.0-12.el6.i686.rpm");
+		
+		P2SPDownload p2sp = new P2SPDownload(urls , "F:/m.iso");
 		p2sp.start();
 		
 		long start = System.currentTimeMillis();
@@ -36,31 +30,5 @@ public class Test {
 		}
 		long end = System.currentTimeMillis();
 		System.out.println("总线程数：" + urls.size() + "  总耗时：" + (end - start));
-		
-	}
-	
-	public static void randomDown(UriInfo uri, String fileName) throws IOException {
-		// 文件长度
-		String url = uri.getUri();
-		
-		long len = HttpClientUtil.getFileSize(url);
-		System.out.println(len);
-		// 工厂获取写句柄
-		MappedByteBuffer mbb = FileFactory.getMappedByteBuffer(fileName, len);
-		
-		int start = 0;
-		int end = 0;
-		while (len > 0) {
-			end = start + 2000;
-			long s = System.currentTimeMillis();
-			
-			len = HttpClientUtil.downloadFile(url, mbb, start, end);
-			long e = System.currentTimeMillis();
-			System.out.println(len + " " + (e - s));
-			start = end;
-		};
-		
-		// 完事释放
-		FileFactory.releaseMappedByteBuffer(mbb);
 	}
 }

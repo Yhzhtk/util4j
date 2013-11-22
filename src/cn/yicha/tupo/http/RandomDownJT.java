@@ -32,12 +32,17 @@ public class RandomDownJT extends Thread {
 		long start = System.currentTimeMillis();
 		while (true) {
 			range = distri.getNextRangeInfo();
+			System.out.println("Start " + Thread.currentThread().getName() + " " + range);
 			uriInfo.setNowRange(range);
 			if (range == null) {
 				break;
 			}
+			
 			int len = HttpClientUtil.downloadFileJ(uriInfo.getUri(), distri,
 					mbb, range.getStart(), range.getEnd());
+			
+			distri.removeEmpty(range);
+			
 			System.out.println(uriInfo.getIndex() + " rIndex:"
 					+ range.getIndex() + " range:" + range.getStart() + "-"
 					+ (range.getStart() + len));

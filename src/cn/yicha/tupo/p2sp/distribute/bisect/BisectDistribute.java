@@ -1,6 +1,8 @@
 package cn.yicha.tupo.p2sp.distribute.bisect;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.SortedSet;
@@ -29,9 +31,10 @@ public class BisectDistribute implements Distribute {
 	private int rangeIndex = 0;
 	private SortedSet<RangeInfo> fillRanges;
 	private SortedSet<RangeInfo> emptyRanges;
-	private SortedSet<RangeInfo> sortedEmptyRanges;
-
-	private List<RangeInfo> notUsedRanges;
+	
+	private int minRangeSize = 512;
+	private Comparator<RangeInfo> rangeComparator;
+	private List<RangeInfo> sortedEmptyRanges;
 	
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -42,9 +45,9 @@ public class BisectDistribute implements Distribute {
 	public BisectDistribute(int fileSize, List<UriInfo> uris) {
 		fillRanges = new TreeSet<RangeInfo>(new StartComparator());
 		emptyRanges = new TreeSet<RangeInfo>(new StartComparator());
-		sortedEmptyRanges = new TreeSet<RangeInfo>(new RangeComparator());
-
-		notUsedRanges = new ArrayList<RangeInfo>();
+		
+		rangeComparator = new RangeComparator();
+		sortedEmptyRanges = new ArrayList<RangeInfo>();
 
 		this.baseSize = 1024;
 		this.fileSize = fileSize;
@@ -61,7 +64,6 @@ public class BisectDistribute implements Distribute {
 			RangeInfo r = RangeFactory.getRangeInstance(rangeIndex++);
 			r.setStart(0);
 			r.setEnd(fileSize);
-			notUsedRanges.add(r);
 			addEmpty(r);
 		} else {
 			int len = uris.size();
@@ -75,7 +77,6 @@ public class BisectDistribute implements Distribute {
 				RangeInfo r = RangeFactory.getRangeInstance(rangeIndex++);
 				r.setStart(s);
 				r.setEnd(e);
-				notUsedRanges.add(r);
 				addEmpty(r);
 			}
 		}
@@ -94,19 +95,24 @@ public class BisectDistribute implements Distribute {
 	@Override
 	public RangeInfo getNextRangeInfo() {
 		lock.lock();
-		RangeInfo r = null;
-		// 如果有未使用的直接返回
-		if (notUsedRanges.size() > 0) {
-			r = notUsedRanges.get(0);
-			notUsedRanges.remove(r);
-			return r;
-		}
-
-		// 取最大空闲的一半
-		r = getMaxEmptyRange();
+		RangeInfo r = getMaxEmptyRange();
 		if (r == null) {
+			lock.unlock();
 			return null;
 		}
+		// 未使用直接返回
+		if(!r.isUsed()){
+			r.setUsed(true);
+			lock.unlock();
+			return r;
+		}
+		
+		// 小于最小允许的大小则不需要再分了
+		if(r.getEnd() - r.getStart() < minRangeSize){
+			lock.unlock();
+			return null;
+		}
+		
 		int s = r.getStart();
 		int e = r.getEnd();
 		int m = (s + e) / 2;
@@ -117,6 +123,7 @@ public class BisectDistribute implements Distribute {
 		n.setEnd(e);
 		addEmpty(n);
 
+		n.setUsed(true);
 		lock.unlock();
 		return n;
 	}
@@ -150,16 +157,17 @@ public class BisectDistribute implements Distribute {
 
 	public boolean hasBytesDown(int loc) {
 		lock.lock();
+		boolean res = false;
 		Iterator<RangeInfo> iter = fillRanges.iterator();
 		while (iter.hasNext()) {
 			RangeInfo r = iter.next();
 			// 不能等于end
 			if (loc >= r.getStart() && loc < r.getEnd()) {
-				return true;
+				res = true;
 			}
 		}
 		lock.unlock();
-		return false;
+		return res;
 	}
 
 	private void setFillInfo(int loc, int blen) {
@@ -196,9 +204,7 @@ public class BisectDistribute implements Distribute {
 			if (e >= r.getEnd()) {
 				removeEmpty(r);
 			} else {
-				r.setEnd(e);
-				// TODO 是否需要刷新
-
+				r.setStart(e);
 			}
 		}
 	}
@@ -208,15 +214,17 @@ public class BisectDistribute implements Distribute {
 		sortedEmptyRanges.add(r);
 	}
 
-	private void removeEmpty(RangeInfo r) {
+	public void removeEmpty(RangeInfo r) {
 		emptyRanges.remove(r);
 		sortedEmptyRanges.remove(r);
 		RangeFactory.releaseRangeInfo(r);
 	}
 
 	private RangeInfo getMaxEmptyRange() {
+		Collections.sort(sortedEmptyRanges, rangeComparator);
+		
 		if (sortedEmptyRanges.size() > 0) {
-			return sortedEmptyRanges.first();
+			return sortedEmptyRanges.get(0);
 		}
 		return null;
 	}

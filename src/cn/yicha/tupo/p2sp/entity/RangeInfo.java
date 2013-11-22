@@ -11,7 +11,16 @@ public class RangeInfo {
 	private int index;
 	private int start;
 	private int end;
+	private boolean used;
 	
+	public boolean isUsed() {
+		return used;
+	}
+
+	public void setUsed(boolean used) {
+		this.used = used;
+	}
+
 	public RangeInfo(int index){
 		this.index = index;
 		reset();
@@ -24,6 +33,7 @@ public class RangeInfo {
 	public void reset(){
 		start = -1;
 		end = -1;
+		used = false;
 	}
 	
 	public boolean isAvailable(){
@@ -51,5 +61,9 @@ public class RangeInfo {
 	}
 	public void setEnd(int end) {
 		this.end = end;
+	}
+	
+	public String toString(){
+		return index + ":" + start + "-" + end;
 	}
 }
