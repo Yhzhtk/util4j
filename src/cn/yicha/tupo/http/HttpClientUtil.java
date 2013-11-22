@@ -42,7 +42,6 @@ public class HttpClientUtil {
 //						"Mozilla/5.0 (Windows NT 5.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.41 Safari/537.36")
 //				.setDefaultRequestConfig(config).build();
 		httpclient = HttpClients.createDefault();
-		
 	}
 
 	/**
@@ -210,14 +209,13 @@ public class HttpClientUtil {
 						}
 						long t = System.currentTimeMillis() - s;
 						if(t != 0 && t / 1000 % 2 == i){
-							System.out.println(Thread.currentThread().getName() + " loc:" + (loc + length) + " speed:" + (length * 1000 / t));
+							System.out.println(Thread.currentThread().getName() + " loc:" + startLoc + "-" + loc + " speed:" + (length * 1000 / t));
 							i = 1 - i;
 						}
 					}
 					return length;
 				} finally {
-					// 是否需要关闭
-					//response1.close();
+					response1.close();
 				}
 			}
 		} catch (IOException e) {

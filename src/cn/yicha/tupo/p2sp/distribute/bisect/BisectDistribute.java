@@ -32,7 +32,7 @@ public class BisectDistribute implements Distribute {
 	private SortedSet<RangeInfo> fillRanges;
 	private SortedSet<RangeInfo> emptyRanges;
 	
-	private int minRangeSize = 512;
+	private int minRangeSize = 2048;
 	private Comparator<RangeInfo> rangeComparator;
 	private List<RangeInfo> sortedEmptyRanges;
 	
