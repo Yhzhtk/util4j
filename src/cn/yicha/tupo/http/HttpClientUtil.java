@@ -9,39 +9,52 @@ import java.nio.MappedByteBuffer;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.config.SocketConfig;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
 
+/**
+ * http请求类
+ * 
+ * @author gudh
+ * @date 2013-11-25
+ */
 public class HttpClientUtil {
 
-	static CloseableHttpClient httpclient;
-	
-	static {
-		// http 连接池
-//		PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
-//		connManager.setMaxTotal(Integer.MAX_VALUE);
-//		connManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
-//		SocketConfig defaultSocketConfig = SocketConfig.custom()
-//				.setTcpNoDelay(true).setSoKeepAlive(true)
-//				.setSoReuseAddress(true).build();
-//		connManager.setDefaultSocketConfig(defaultSocketConfig);
-//
-//		RequestConfig config = RequestConfig.custom().setConnectTimeout(5000)
-//				.setConnectionRequestTimeout(5000).setSocketTimeout(5000)
-//				.build();
+	static boolean usePool = false;
+	static CloseableHttpClient httpClient;
 
-//		httpclient = HttpClients
-//				.custom()
-//				//.setConnectionManager(connManager)
-//				.setUserAgent(
-//						"Mozilla/5.0 (Windows NT 5.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.41 Safari/537.36")
-//				.setDefaultRequestConfig(config).build();
-		httpclient = HttpClients.createDefault();
+	static {
+		if (usePool) {
+			// 使用http连接池
+			PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
+			connManager.setMaxTotal(Integer.MAX_VALUE);
+			connManager.setDefaultMaxPerRoute(Integer.MAX_VALUE);
+			SocketConfig defaultSocketConfig = SocketConfig.custom()
+					.setTcpNoDelay(true).setSoKeepAlive(true)
+					.setSoReuseAddress(true).build();
+			connManager.setDefaultSocketConfig(defaultSocketConfig);
+
+			RequestConfig config = RequestConfig.custom()
+					.setConnectTimeout(5000).setConnectionRequestTimeout(5000)
+					.setSocketTimeout(5000).build();
+
+			httpClient = HttpClients
+					.custom()
+					.setConnectionManager(connManager)
+					.setUserAgent(
+							"Mozilla/5.0 (Windows NT 5.2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/29.0.1547.41 Safari/537.36")
+					.setDefaultRequestConfig(config).build();
+		} else {
+			httpClient = HttpClients.createDefault();
+		}
 	}
 
 	/**
@@ -58,7 +71,7 @@ public class HttpClientUtil {
 		try {
 			HttpGet httpGet = new HttpGet(url);
 
-			CloseableHttpResponse response1 = httpclient.execute(httpGet);
+			CloseableHttpResponse response1 = httpClient.execute(httpGet);
 			System.out.println(response1.getStatusLine());
 			HttpEntity entity = response1.getEntity();
 			try {
@@ -86,7 +99,7 @@ public class HttpClientUtil {
 		try {
 			HttpGet httpGet = new HttpGet(url);
 
-			CloseableHttpResponse response1 = httpclient.execute(httpGet);
+			CloseableHttpResponse response1 = httpClient.execute(httpGet);
 			System.out.println(response1.getStatusLine());
 			HttpEntity entity = response1.getEntity();
 			try {
@@ -112,6 +125,7 @@ public class HttpClientUtil {
 
 	/**
 	 * 下载文件指定的位置
+	 * 
 	 * @param url
 	 * @param mbb
 	 * @param startLoc
@@ -120,8 +134,8 @@ public class HttpClientUtil {
 	 * @date:2013-11-20
 	 * @author:gudaihui
 	 */
-	public static int downloadFile(String url, MappedByteBuffer mbb, long startLoc,
-			long endLoc) {
+	public static int downloadFile(RandomDown downThread, String url,
+			MappedByteBuffer mbb, long startLoc, long endLoc) {
 		try {
 			HttpGet httpGet = new HttpGet(url);
 
@@ -133,18 +147,19 @@ public class HttpClientUtil {
 			}
 			httpGet.setHeader("Range", sb.toString());
 
-			CloseableHttpResponse response1 = httpclient.execute(httpGet);
-			//System.out.println(response1.getStatusLine());
+			CloseableHttpResponse response1 = httpClient.execute(httpGet);
+			// System.out.println(response1.getStatusLine());
 			if (response1.getStatusLine().getStatusCode() == 206) {
 				HttpEntity entity = response1.getEntity();
 				try {
 					mbb.position((int) startLoc);
-					//rf.seek(startLoc);
+					// rf.seek(startLoc);
 					InputStream is = entity.getContent();
 					int length = 0;
 					int blen = 0;
 					byte[] bytes = new byte[1024];
-					while ((blen = is.read(bytes)) != -1) {
+					while ((blen = is.read(bytes)) != -1
+							&& !downThread.stopFlag) {
 						// rf.write(bytes, 0, blen);
 						mbb.put(bytes, 0, blen);
 						length += blen;
@@ -152,7 +167,7 @@ public class HttpClientUtil {
 					return length;
 				} finally {
 					// 是否需要关闭
-					//response1.close();
+					// response1.close();
 				}
 			}
 		} catch (IOException e) {
@@ -163,6 +178,7 @@ public class HttpClientUtil {
 
 	/**
 	 * 以二分空闲区块下载文件
+	 * 
 	 * @param url
 	 * @param bisect
 	 * @param mbb
@@ -170,7 +186,8 @@ public class HttpClientUtil {
 	 * @param endLoc
 	 * @return
 	 */
-	public static int downloadFileJ(String url, BisectDistribute bisect, MappedByteBuffer mbb, long startLoc,
+	public static int downloadFile(RandomDown downThread, String url,
+			BisectDistribute bisect, MappedByteBuffer mbb, long startLoc,
 			long endLoc) {
 		try {
 			HttpGet httpGet = new HttpGet(url);
@@ -183,33 +200,36 @@ public class HttpClientUtil {
 			}
 			httpGet.setHeader("Range", sb.toString());
 
-			CloseableHttpResponse response1 = httpclient.execute(httpGet);
-			//System.out.println(response1.getStatusLine());
+			CloseableHttpResponse response1 = httpClient.execute(httpGet);
+			// System.out.println(response1.getStatusLine());
 			if (response1.getStatusLine().getStatusCode() == 206) {
 				HttpEntity entity = response1.getEntity();
 				try {
 					int loc = (int) startLoc;
 					mbb.position(loc);
-					//rf.seek(startLoc);
+					// rf.seek(startLoc);
 					InputStream is = entity.getContent();
 					int length = 0;
 					int blen = 0;
 					byte[] bytes = new byte[bisect.getBaseSize()];
 					long s = System.currentTimeMillis();
 					int i = 0;
-					while ((blen = is.read(bytes)) != -1) {
+					while ((blen = is.read(bytes)) != -1
+							&& !downThread.stopFlag) {
 						// rf.write(bytes, 0, blen);
 						mbb.put(bytes, 0, blen);
 						length += blen;
 						bisect.setBytesOk(loc, blen);
 						loc += blen;
-						if(bisect.hasBytesDown(loc)){
-							System.out.println("Break --- " + loc);
+						if (bisect.hasBytesDown(loc)) {
+							System.out.println(Thread.currentThread().getName() + " Break --- " + loc);
 							break;
 						}
 						long t = System.currentTimeMillis() - s;
-						if(t != 0 && t / 1000 % 2 == i){
-							System.out.println(Thread.currentThread().getName() + " loc:" + startLoc + "-" + loc + " speed:" + (length * 1000 / t));
+						if (t != 0 && t / 1000 % 2 == i) {
+							System.out.println(Thread.currentThread().getName()
+									+ " " + (length * 1000 / t) + "B/s "
+									+ startLoc + "-" + loc);
 							i = 1 - i;
 						}
 					}
@@ -223,7 +243,7 @@ public class HttpClientUtil {
 		}
 		return -1;
 	}
-	
+
 	/**
 	 * 获取文件大小
 	 * 
@@ -239,7 +259,7 @@ public class HttpClientUtil {
 
 		CloseableHttpResponse response1;
 		try {
-			response1 = httpclient.execute(httpGet);
+			response1 = httpClient.execute(httpGet);
 			System.out.println(response1.getStatusLine());
 			if (response1.getStatusLine().getStatusCode() == 200) {
 				Header lenHeader = response1.getFirstHeader("Content-Length");

@@ -4,21 +4,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 import cn.yicha.tupo.http.HttpClientUtil;
-import cn.yicha.tupo.http.RandomDownJT;
-import cn.yicha.tupo.p2sp.distribute.Distribute;
+import cn.yicha.tupo.http.RandomDown;
+import cn.yicha.tupo.http.file.FileFactory;
+import cn.yicha.tupo.http.file.JudgeRandomDown;
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
 import cn.yicha.tupo.p2sp.entity.UriFactory;
 import cn.yicha.tupo.p2sp.entity.UriInfo;
 
 /**
- * P2SP下载
+ * P2SP下载，使用二分最大块分发算法
  */
 public class P2SPDownload {
 
-	private Distribute distribute;
-	private Thread[] threads;
+	private BisectDistribute distribute;
+	private RandomDown[] threads;
 	private String fileName;
-
+	
 	private int rCount;
 
 	public P2SPDownload(List<String> urls, String fileName) {
@@ -29,35 +30,71 @@ public class P2SPDownload {
 		List<UriInfo> uris = new ArrayList<UriInfo>();
 		for (int i = 0; i < urls.size(); i++) {
 			UriInfo uri = UriFactory.getUriInstance(urls.get(i));
-			uri.setIndex("t" + i);
+			uri.setIndex("U" + i);
 			uris.add(uri);
 		}
 		distribute = new BisectDistribute(fileSize, uris);
 
-		threads = new RandomDownJT[urls.size()];
+		/**
+		 * 初始化线程
+		 */
+		threads = new JudgeRandomDown[urls.size()];
 		for (int i = 0; i < urls.size(); i++) {
-			threads[i] = new RandomDownJT((BisectDistribute) distribute,
+			threads[i] = new JudgeRandomDown(distribute,
 					uris.get(i), this);
 			threads[i].setName("T" + i);
 		}
 	}
 
+	/**
+	 * 开始下载
+	 */
 	public void start() {
 		for (Thread t : threads) {
-			t.start();
 			rCount++;
+			t.start();
+		}
+	}
+	
+	/**
+	 * 停止下载
+	 */
+	public void stop(){
+		for (RandomDown t : threads) {
+			t.stopFlag();
 		}
 	}
 
+	/**
+	 * 提供子线程通信的接口
+	 * @param tIndex
+	 */
 	public void completeOne(String tIndex) {
 		rCount--;
 	}
 
+	/**
+	 * 判断下载是否完成
+	 * @return
+	 */
 	public boolean isComplete() {
-		return rCount == 0;
+		boolean res = false;
+		res = (rCount == 0);
+		if(res){
+			// 结束后关闭文件
+			close();
+		}
+		return res;
+	}
+	
+	/**
+	 * 下载结束时关闭文件等
+	 */
+	public void close(){
+		FileFactory.closeFile(fileName);
 	}
 
-	public Distribute getDistribute() {
+	public BisectDistribute getDistribute() {
 		return distribute;
 	}
 

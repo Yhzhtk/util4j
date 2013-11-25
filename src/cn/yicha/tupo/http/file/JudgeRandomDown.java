@@ -1,36 +1,30 @@
-package cn.yicha.tupo.http;
+package cn.yicha.tupo.http.file;
 
-import java.nio.MappedByteBuffer;
-
-import cn.yicha.tupo.http.file.FileFactory;
+import cn.yicha.tupo.http.HttpClientUtil;
+import cn.yicha.tupo.http.RandomDown;
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
 import cn.yicha.tupo.p2sp.P2SPDownload;
 import cn.yicha.tupo.p2sp.entity.RangeInfo;
 import cn.yicha.tupo.p2sp.entity.UriInfo;
 
-public class RandomDownJT extends Thread {
+/**
+ * 高级断点下载类，下载过程中实时判断下一块是否下载，如果已经下载则跳出
+ * 
+ * @author gudh
+ * @date 2013-11-25
+ */
+public class JudgeRandomDown extends RandomDown {
 
-	private BisectDistribute distri;
-	private UriInfo uriInfo;
-	private P2SPDownload p2sp;
-
-	static int i = 0;
-	
-	public RandomDownJT(BisectDistribute distribute, UriInfo uriInfo,
+	public JudgeRandomDown(BisectDistribute distribute, UriInfo uriInfo,
 			P2SPDownload p2sp) {
-		this.uriInfo = uriInfo;
-		this.distri = distribute;
-		this.p2sp = p2sp;
+		super(distribute, uriInfo, p2sp);
 	}
 
 	@Override
 	public void run() {
-		MappedByteBuffer mbb = FileFactory.getMappedByteBuffer(
-				p2sp.getFileName(), distri.getFileSize());
-		
 		RangeInfo range;
 		long start = System.currentTimeMillis();
-		while (true) {
+		while (!stopFlag) {
 			range = distri.getNextRangeInfo();
 			if (range == null) {
 				break;
@@ -41,7 +35,7 @@ public class RandomDownJT extends Thread {
 			System.out.println("Start " + Thread.currentThread().getName() + " " + range);
 			uriInfo.setNowRange(range);
 			
-			int len = HttpClientUtil.downloadFileJ(uriInfo.getUri(), distri,
+			int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(), distri,
 					mbb, startLoc, endLoc);
 			
 			System.out.println(uriInfo.getIndex() + " rIndex:"
@@ -53,8 +47,10 @@ public class RandomDownJT extends Thread {
 		;
 		// 该线程下载结束
 		long end = System.currentTimeMillis();
-		System.out.println("线程：" + uriInfo.getIndex() + " 完成，用时"
-				+ (end - start));
-		p2sp.completeOne(uriInfo.getIndex());
+		System.out.println("线程：" + this.getName() + " 结束， stopFlag:" + stopFlag + "，用时" + (end - start));
+		
+		// 关闭线程和文件句柄
+		close();
 	}
+	
 }
