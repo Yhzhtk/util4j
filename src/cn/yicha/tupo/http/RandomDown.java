@@ -12,7 +12,7 @@ import cn.yicha.tupo.p2sp.entity.UriInfo;
  * @author gudh
  * @date 2013-11-25
  */
-public class RandomDown extends Thread {
+public class RandomDown implements Runnable {
 	// 控制线程结束标志
 	protected boolean stopFlag;
 	
@@ -21,7 +21,8 @@ public class RandomDown extends Thread {
 	 */
 	protected long lastTime;
 	protected int lastSpeed;
-	
+
+	protected String name;
 	protected BisectDistribute distri;
 	protected UriInfo uriInfo;
 	protected P2SPDownload p2sp;
@@ -33,9 +34,6 @@ public class RandomDown extends Thread {
 		this.uriInfo = uriInfo;
 		this.distri = distribute;
 		this.p2sp = p2sp;
-		
-		mbb = FileFactory.getMappedByteBuffer(
-				p2sp.getFileName(), distri.getFileSize());
 	}
 	
 	/**
@@ -57,6 +55,15 @@ public class RandomDown extends Thread {
 	}
 	
 	/**
+	 * 开始线程时执行
+	 */
+	public void start(){
+		p2sp.addNewOne(uriInfo.getIndex());
+		mbb = FileFactory.getMappedByteBuffer(
+				p2sp.getFileName(), distri.getFileSize());
+	}
+	
+	/**
 	 * 关闭线程结尾工作，包括线程通知和关闭文件句柄
 	 */
 	public void close(){
@@ -67,5 +74,17 @@ public class RandomDown extends Thread {
 	public UriInfo getUriInfo(){
 		return uriInfo;
 	}
+
+	@Override
+	public void run() {
+		System.out.println("RandomDown run method");
+	}
 	
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
 }

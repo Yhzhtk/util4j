@@ -21,6 +21,9 @@ public class SimpleRandomDown extends RandomDown {
 
 	@Override
 	public void run() {
+		// 开始线程时执行
+		start();
+		
 		RangeInfo range;
 		long start = System.currentTimeMillis();
 		while (!stopFlag) {

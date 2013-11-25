@@ -2,6 +2,8 @@ package cn.yicha.tupo.p2sp;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import cn.yicha.tupo.http.HttpClientUtil;
 import cn.yicha.tupo.http.RandomDown;
@@ -15,17 +17,21 @@ import cn.yicha.tupo.p2sp.entity.UriInfo;
  * P2SP下载，使用二分最大块分发算法
  */
 public class P2SPDownload {
-
+	
+	private ExecutorService threadPool; // 线程池
+	
 	private long maxAllowStopTime = 3000; // 最大允许没有下载的时间，单位毫秒
 	private long minAllowSpeed = 1024; // 最小允许的下载速度，单位B/s
 	
 	private BisectDistribute distribute;
-	private RandomDown[] threads;
+	private List<JudgeRandomDown> threads;
 	private String fileName;
 	
-	private int rCount;
+	private volatile int rCount;
 
-	public P2SPDownload(List<String> urls, String fileName) {
+	public P2SPDownload(List<String> urls, String fileName, int maxThread) {
+		threadPool = Executors.newFixedThreadPool(maxThread);
+		
 		this.fileName = fileName;
 		int fileSize = HttpClientUtil.getFileSize(urls.get(0));
 		System.out.println("fileSize:" + fileSize);
@@ -33,7 +39,6 @@ public class P2SPDownload {
 		List<UriInfo> uris = new ArrayList<UriInfo>();
 		for (int i = 0; i < urls.size(); i++) {
 			UriInfo uri = UriFactory.getUriInstance(urls.get(i));
-			uri.setIndex("U" + i);
 			uris.add(uri);
 		}
 		distribute = new BisectDistribute(fileSize, uris);
@@ -41,11 +46,12 @@ public class P2SPDownload {
 		/**
 		 * 初始化线程
 		 */
-		threads = new JudgeRandomDown[urls.size()];
+		threads = new ArrayList<JudgeRandomDown>(urls.size());
 		for (int i = 0; i < urls.size(); i++) {
-			threads[i] = new JudgeRandomDown(distribute,
+			JudgeRandomDown rd = new JudgeRandomDown(distribute,
 					uris.get(i), this);
-			threads[i].setName("T" + i);
+			rd.setName("T" + i);
+			threads.add(rd);
 		}
 	}
 
@@ -53,9 +59,14 @@ public class P2SPDownload {
 	 * 开始下载
 	 */
 	public void start() {
-		for (Thread t : threads) {
-			rCount++;
-			t.start();
+		for (RandomDown t : threads) {
+			threadPool.execute(t);
+		}
+		// 启动之后延时1秒
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
 		}
 	}
 	
@@ -66,6 +77,7 @@ public class P2SPDownload {
 		for (RandomDown t : threads) {
 			t.stopFlag();
 		}
+		close();
 	}
 	
 	/**
@@ -86,6 +98,19 @@ public class P2SPDownload {
 		}
 		return hasDead;
 	}
+	
+	/**
+	 * 添加新源
+	 * @param uri
+	 * @param p2sp
+	 */
+	public synchronized void addUrl(String uri, P2SPDownload p2sp){
+		UriInfo uriInfo = UriFactory.getUriInstance(uri);
+		distribute.addUri(uriInfo);
+		JudgeRandomDown rd = new JudgeRandomDown(distribute, uriInfo, p2sp);
+		threads.add(rd);
+		threadPool.execute(rd);
+	}
 
 	/**
 	 * 提供子线程通信的接口
@@ -95,6 +120,14 @@ public class P2SPDownload {
 		rCount--;
 	}
 
+	/**
+	 * 添加一个新的运行实例
+	 * @param index
+	 */
+	public void addNewOne(String index) {
+		rCount++;
+	}
+	
 	/**
 	 * 判断下载是否完成
 	 * @return
@@ -114,17 +147,19 @@ public class P2SPDownload {
 	 */
 	public void close(){
 		FileFactory.closeFile(fileName);
+		threadPool.shutdownNow();
 	}
 
 	public BisectDistribute getDistribute() {
 		return distribute;
 	}
 
-	public Thread[] getThreads() {
+	public List<JudgeRandomDown> getThreads() {
 		return threads;
 	}
 
 	public String getFileName() {
 		return fileName;
 	}
+
 }

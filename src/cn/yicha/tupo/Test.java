@@ -15,7 +15,7 @@ public class Test {
 		urls.add("http://mirror.vilkam.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz");
 		urls.add("http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz");
 		
-		P2SPDownload p2sp = new P2SPDownload(urls , "F:/mx.xml.rar");
+		P2SPDownload p2sp = new P2SPDownload(urls , "F:/mx.xml.rar", 10);
 		p2sp.start();
 		
 		long start = System.currentTimeMillis();
