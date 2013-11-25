@@ -1,5 +1,7 @@
 package cn.yicha.tupo.p2sp.entity;  
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+
 /**
  * 产生Range的工厂
  *@author:gudaihui
@@ -7,15 +9,22 @@ package cn.yicha.tupo.p2sp.entity;
  */
 public class RangeFactory {
 	
+	static ConcurrentLinkedQueue<RangeInfo> ranges = new ConcurrentLinkedQueue<RangeInfo>();
+	
 	/**
 	 * 获取一个RangeInfo对象
 	 * @param index
 	 * @return
-	 * @date:2013-11-20
-	 * @author:gudaihui
 	 */
 	public static RangeInfo getRangeInstance(int index){
-		return new RangeInfo(index);
+		RangeInfo range = ranges.poll();
+		if(range == null){
+			range = new RangeInfo(index); 
+		}else{
+			range.setIndex(index);
+			range.reset();
+		}
+		return range;
 	}
 
 	/**
@@ -25,8 +34,7 @@ public class RangeFactory {
 	 * @date:2013-11-20
 	 * @author:gudaihui
 	 */
-	public static void releaseRangeInfo(RangeInfo uri) {
-
+	public static void releaseRangeInfo(RangeInfo range) {
+		ranges.offer(range);
 	}
-
 }

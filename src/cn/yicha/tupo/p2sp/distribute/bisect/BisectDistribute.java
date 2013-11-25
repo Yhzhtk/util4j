@@ -90,6 +90,11 @@ public class BisectDistribute implements Distribute {
 	@Override
 	public void deleteUri(UriInfo uri) {
 		this.uris.remove(uri);
+		if(uri != null && uri.getNowRange() != null){
+			// 当前正在下载的设为未使用
+			RangeInfo r = uri.getNowRange();
+			r.setUsed(false);
+		}
 	}
 
 	@Override

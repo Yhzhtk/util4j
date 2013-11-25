@@ -15,6 +15,8 @@ public class UriInfo {
 	
 	public UriInfo(String uri){
 		this.uri = uri;
+		this.index = uri;
+		this.isAvailable = true;
 	}
 	
 	public boolean equals(UriInfo uri){
@@ -22,6 +24,13 @@ public class UriInfo {
 			return true;
 		}
 		return false;
+	}
+	
+	public void reset() {
+		this.uri = null;
+		this.index = null;
+		this.isAvailable = true;
+		this.nowRange = null;
 	}
 	
 	public String getUri() {
@@ -48,5 +57,4 @@ public class UriInfo {
 	public void setNowRange(RangeInfo nowRange) {
 		this.nowRange = nowRange;
 	}
-
 }

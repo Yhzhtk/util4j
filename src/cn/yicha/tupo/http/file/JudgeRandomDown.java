@@ -27,7 +27,12 @@ public class JudgeRandomDown extends RandomDown {
 		while (!stopFlag) {
 			range = distri.getNextRangeInfo();
 			if (range == null) {
-				break;
+				// 如果当前为空，则检查是否有失效的资源
+				if(p2sp.checkHasSlowThread()){
+					continue;
+				}else{
+					break;
+				}
 			}
 			
 			int startLoc = range.getStart();
@@ -43,8 +48,7 @@ public class JudgeRandomDown extends RandomDown {
 					+ (startLoc + len) + " endLoc:" + endLoc);
 			
 			distri.removeEmpty(range);
-		}
-		;
+		};
 		// 该线程下载结束
 		long end = System.currentTimeMillis();
 		System.out.println("线程：" + this.getName() + " 结束， stopFlag:" + stopFlag + "，用时" + (end - start));

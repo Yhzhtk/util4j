@@ -16,6 +16,12 @@ public class RandomDown extends Thread {
 	// 控制线程结束标志
 	protected boolean stopFlag;
 	
+	/**
+	 * 记录下载速度，用于判断资源是否可用
+	 */
+	protected long lastTime;
+	protected int lastSpeed;
+	
 	protected BisectDistribute distri;
 	protected UriInfo uriInfo;
 	protected P2SPDownload p2sp;
@@ -33,6 +39,17 @@ public class RandomDown extends Thread {
 	}
 	
 	/**
+	 * 以上次成功时间距现在小于等于time，并且上次速度大于等于speed来决定资源是否可用
+	 * @param time
+	 * @param speed
+	 * @return
+	 */
+	public boolean isAvailable(long time, float speed){
+		long t = System.currentTimeMillis() - lastTime;
+		return t <= time && lastSpeed > speed;
+	}
+	
+	/**
 	 * 结束下载
 	 */
 	public void stopFlag(){
@@ -47,4 +64,8 @@ public class RandomDown extends Thread {
 		FileFactory.releaseMappedByteBuffer(p2sp.getFileName(), mbb);
 	}
 
+	public UriInfo getUriInfo(){
+		return uriInfo;
+	}
+	
 }

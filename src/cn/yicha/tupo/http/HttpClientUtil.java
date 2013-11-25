@@ -209,11 +209,13 @@ public class HttpClientUtil {
 					mbb.position(loc);
 					// rf.seek(startLoc);
 					InputStream is = entity.getContent();
-					int length = 0;
+					
+					int length = 0, lastLength = 0;
+					long lastTime = System.currentTimeMillis();
+					
 					int blen = 0;
 					byte[] bytes = new byte[bisect.getBaseSize()];
-					long s = System.currentTimeMillis();
-					int i = 0;
+					
 					while ((blen = is.read(bytes)) != -1
 							&& !downThread.stopFlag) {
 						// rf.write(bytes, 0, blen);
@@ -225,12 +227,17 @@ public class HttpClientUtil {
 							System.out.println(Thread.currentThread().getName() + " Break --- " + loc);
 							break;
 						}
-						long t = System.currentTimeMillis() - s;
-						if (t != 0 && t / 1000 % 2 == i) {
+						long t = System.currentTimeMillis() - lastTime;
+						if (t >= 1000) {
+							downThread.lastSpeed =  (length - lastLength) * 1000 / (int)t;
+							
 							System.out.println(Thread.currentThread().getName()
-									+ " " + (length * 1000 / t) + "B/s "
+									+ " " + downThread.lastSpeed + "B/s "
 									+ startLoc + "-" + loc);
-							i = 1 - i;
+							
+							lastLength = length;
+							lastTime = System.currentTimeMillis();
+							downThread.lastTime = lastTime;
 						}
 					}
 					return length;

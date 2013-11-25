@@ -16,6 +16,9 @@ import cn.yicha.tupo.p2sp.entity.UriInfo;
  */
 public class P2SPDownload {
 
+	private long maxAllowStopTime = 3000; // 最大允许没有下载的时间，单位毫秒
+	private long minAllowSpeed = 1024; // 最小允许的下载速度，单位B/s
+	
 	private BisectDistribute distribute;
 	private RandomDown[] threads;
 	private String fileName;
@@ -63,6 +66,25 @@ public class P2SPDownload {
 		for (RandomDown t : threads) {
 			t.stopFlag();
 		}
+	}
+	
+	/**
+	 * 检查是否有资源以及不可用
+	 * 
+	 * 如果不可用则删除资源
+	 * @return
+	 */
+	public synchronized boolean checkHasSlowThread(){
+		boolean hasDead = false;
+		for (RandomDown t : threads) {
+			// 资源失效
+			if(!t.isAvailable(maxAllowStopTime, minAllowSpeed)){
+				t.stopFlag();
+				distribute.deleteUri(t.getUriInfo());
+				hasDead = true;
+			}
+		}
+		return hasDead;
 	}
 
 	/**

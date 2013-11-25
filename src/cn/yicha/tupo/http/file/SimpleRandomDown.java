@@ -27,7 +27,12 @@ public class SimpleRandomDown extends RandomDown {
 			range = distri.getNextRangeInfo();
 			uriInfo.setNowRange(range);
 			if (range == null) {
-				break;
+				// 如果当前为空，则检查是否有失效的资源
+				if(p2sp.checkHasSlowThread()){
+					continue;
+				}else{
+					break;
+				}
 			}
 			int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(), mbb,
 					range.getStart(), range.getEnd());
@@ -41,5 +46,4 @@ public class SimpleRandomDown extends RandomDown {
 		// 关闭线程和文件句柄
 		close();
 	}
-	
 }
