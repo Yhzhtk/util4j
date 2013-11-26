@@ -50,4 +50,10 @@ public class HashDistribute implements Distribute {
 		return 0;
 	}
 
+	@Override
+	public void collectRangeInfo(RangeInfo range) {
+		// TODO Auto-generated method stub
+		
+	}
+
 }

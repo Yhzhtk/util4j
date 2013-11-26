@@ -44,7 +44,8 @@ public class SimpleRandomDown extends RandomDown {
 		
 		// 该线程下载结束
 		long end = System.currentTimeMillis();
-		System.out.println("线程：" + uriInfo.getIndex() + " 结束， stopFlag:" + stopFlag + "，用时" + (end - start));
+		System.out.println(this.getThreadName() + " END -- StopFlag:"
+				+ stopFlag + " Time:" + (end - start) + " " + uriInfo.getUri());
 
 		// 关闭线程和文件句柄
 		close();

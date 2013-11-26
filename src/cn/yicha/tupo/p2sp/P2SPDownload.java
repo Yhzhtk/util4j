@@ -125,7 +125,7 @@ public class P2SPDownload {
 			t.stopFlag();
 			distribute.deleteUri(t.getUriInfo());
 			threads.remove(t);
-			System.out.println("移除资源：" + t.getUriInfo().getUri());
+			System.out.println("Remove：" + t.getUriInfo().getUri());
 		}
 	}
 

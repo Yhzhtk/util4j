@@ -24,46 +24,43 @@ public class JudgeRandomDown extends RandomDown {
 	public void run() {
 		// 开始线程时执行
 		start();
-		
+
 		RangeInfo range;
 		long start = System.currentTimeMillis();
 		while (!stopFlag) {
 			range = distri.getNextRangeInfo();
 			if (range == null) {
 				// 如果当前为空，则检查是否有失效的资源
-				if(p2sp.checkHasSlowThread()){
+				if (p2sp.checkHasSlowThread()) {
 					continue;
-				}else{
-					System.out.println("下载结果：" + p2sp.isComplete());
+				} else {
 					break;
 				}
 			}
-			
+
 			int startLoc = range.getStart();
 			int endLoc = range.getEnd();
-			System.out.println("Start " + Thread.currentThread().getName() + " " + range);
+			System.out.println(Thread.currentThread().getName()
+					+ " START -- " + range + " " + uriInfo.getUri());
 			uriInfo.setNowRange(range);
-			
-			int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(), distri,
-					mbb, startLoc, endLoc);
-			
-			System.out.println(uriInfo.getIndex() + " rIndex:"
-					+ range.getIndex() + " range:" + startLoc + "-"
-					+ (startLoc + len) + " endLoc:" + endLoc);
-			
-			range.setStart(range.getStart() + len);
-			if(range.getStart() >= range.getEnd()){
-				distri.removeEmpty(range);
-			} else{
-				range.setUsed(false);
-			}
-		};
+
+			int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(),
+					distri, mbb, range);
+
+			System.out.println(Thread.currentThread().getName() + " rIndex:" + range.getIndex() + " range:"
+					+ startLoc + "-" + (startLoc + len) + " endLoc:" + endLoc);
+
+			// 判断回收range
+			distri.collectRangeInfo(range);
+		}
+		;
 		// 该线程下载结束
 		long end = System.currentTimeMillis();
-		System.out.println("线程：" + this.getThreadName() + " 结束， stopFlag:" + stopFlag + "，用时" + (end - start));
-		
+		System.out.println(this.getThreadName() + " END -- StopFlag:"
+				+ stopFlag + " Time:" + (end - start) + " " + uriInfo.getUri());
+
 		// 关闭线程和文件句柄
 		close();
 	}
-	
+
 }

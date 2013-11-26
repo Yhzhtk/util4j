@@ -103,6 +103,12 @@ public class BlockDistribute implements Distribute{
 		lock.unlock();
 		return r;
 	}
+	
+
+	@Override
+	public void collectRangeInfo(RangeInfo range) {
+		
+	}
 
 	@Override
 	public List<UriInfo> getAllUriInfos() {  
@@ -130,5 +136,4 @@ public class BlockDistribute implements Distribute{
 	public int getBlockCount() {
 		return blockCount;
 	}
-	
 }

@@ -53,12 +53,6 @@ public class BisectDistribute implements Distribute {
 		this.fileSize = fileSize;
 		this.uris = uris;
 
-		// // 添加一个空的已完成
-		// RangeInfo r = RangeFactory.getRangeInstance(rangeIndex++);
-		// r.setStart(0);
-		// r.setEnd(0);
-		// this.fillRanges.add(r);
-
 		// 初始时按线程平分
 		if (uris.size() == 0) {
 			RangeInfo r = RangeFactory.getRangeInstance(rangeIndex++);
@@ -134,6 +128,15 @@ public class BisectDistribute implements Distribute {
 	}
 
 	@Override
+	public void collectRangeInfo(RangeInfo range) {
+		if(range.getStart() < range.getEnd()){
+			range.setUsed(false);
+		}else{
+			removeEmpty(range);
+		}
+	}
+
+	@Override
 	public boolean isCompleted() {
 		return emptyRanges.size() == 0;
 	}
@@ -151,12 +154,13 @@ public class BisectDistribute implements Distribute {
 		return fileSize;
 	}
 
-	public void setBytesOk(int loc, int blen) {
+	public void setBytesOk(RangeInfo range, int blen) {
 		lock.lock();
+		int loc = range.getStart();
 		// 设置填充信息
 		setFillInfo(loc, blen);
 		// 设置未下载信息
-		setEmptyInfo(loc, blen);
+		range.setStart(loc + blen);
 		lock.unlock();
 	}
 
@@ -192,27 +196,7 @@ public class BisectDistribute implements Distribute {
 			fillRanges.add(r);
 		}
 		// 设置结尾处
-		r.setEnd(loc + blen);
-	}
-
-	private void setEmptyInfo(int loc, int blen) {
-		Iterator<RangeInfo> iter = emptyRanges.iterator();
-		RangeInfo r = null;
-		while (iter.hasNext()) {
-			r = iter.next();
-			if (loc == r.getStart()) {
-				break;
-			}
-			r = null;
-		}
-		if (r != null) {
-			int e = loc + blen;
-			if (e >= r.getEnd()) {
-				removeEmpty(r);
-			} else {
-				r.setStart(e);
-			}
-		}
+		r.setEnd(Math.max(loc + blen, r.getEnd()));
 	}
 
 	private void addEmpty(RangeInfo r) {

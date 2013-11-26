@@ -46,13 +46,13 @@ public class P2SPShell {
 					printMsg("\nCheck Not Complete\n");
 				}
 			} else if (l.trim().equals("add")) {
-				String uri = getNextString("请输入需要添加的Url", "http.*");
+				String uri = getNextString("请输入新增URL：", "http.*");
 				if (uri.equals("http")) {
 					continue;
 				}
 				p2sp.addUrl(uri);
 			} else if (l.trim().equals("remove")) {
-				String uri = getNextString("请输入需要添加的Url", "http.*");
+				String uri = getNextString("请输入删除URL：", "http.*");
 				if (uri.equals("http")) {
 					continue;
 				}
@@ -62,7 +62,7 @@ public class P2SPShell {
 			}
 		}
 		long end = System.currentTimeMillis();
-		System.out.println("总线程数：" + urls.size() + "  总耗时：" + (end - start));
+		System.out.print("Uri Count：" + urls.size() + "  All Time：" + (end - start));
 	}
 
 	/**
@@ -76,7 +76,7 @@ public class P2SPShell {
 	public static int getNextInt(String inputMsg, int start, int end) {
 		int i = Integer.MIN_VALUE;
 		do {
-			printMsg(inputMsg);
+			printlnMsg(inputMsg);
 			try {
 				i = Integer.parseInt(getNext());
 			} catch (Exception e) {
@@ -85,7 +85,7 @@ public class P2SPShell {
 			if (i >= start && i <= end) {
 				break;
 			}
-			printMsg("输入不合法：");
+			printMsg("输入不合法！");
 		} while (true);
 
 		return i;
@@ -101,12 +101,12 @@ public class P2SPShell {
 	public static String getNextString(String inputMsg, String regex) {
 		String str = "";
 		do {
-			printMsg(inputMsg);
+			printlnMsg(inputMsg);
 			str = getNext();
 			if (str.matches(regex)) {
 				break;
 			}
-			printMsg("输入不合法：");
+			printMsg("输入不合法！");
 		} while (true);
 		return str;
 	}

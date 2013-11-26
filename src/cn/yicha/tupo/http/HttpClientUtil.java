@@ -19,6 +19,7 @@ import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
+import cn.yicha.tupo.p2sp.entity.RangeInfo;
 
 /**
  * http请求类
@@ -187,16 +188,15 @@ public class HttpClientUtil {
 	 * @return
 	 */
 	public static int downloadFile(RandomDown downThread, String url,
-			BisectDistribute bisect, MappedByteBuffer mbb, long startLoc,
-			long endLoc) {
+			BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) {
 		try {
 			HttpGet httpGet = new HttpGet(url);
 
 			// 拼接请求范围
 			StringBuffer sb = new StringBuffer();
-			sb.append("bytes=").append(startLoc).append("-");
-			if (endLoc > startLoc) {
-				sb.append(endLoc);
+			sb.append("bytes=").append(emptyRange.getStart()).append("-");
+			if (emptyRange.getEnd() > emptyRange.getStart()) {
+				sb.append(emptyRange.getEnd());
 			}
 			httpGet.setHeader("Range", sb.toString());
 
@@ -205,8 +205,8 @@ public class HttpClientUtil {
 			if (response1.getStatusLine().getStatusCode() == 206) {
 				HttpEntity entity = response1.getEntity();
 				try {
-					int loc = (int) startLoc;
-					mbb.position(loc);
+					int startLoc = emptyRange.getStart();
+					mbb.position(startLoc);
 					// rf.seek(startLoc);
 					InputStream is = entity.getContent();
 					
@@ -221,19 +221,21 @@ public class HttpClientUtil {
 						// rf.write(bytes, 0, blen);
 						mbb.put(bytes, 0, blen);
 						length += blen;
-						bisect.setBytesOk(loc, blen);
-						loc += blen;
-						if (bisect.hasBytesDown(loc)) {
-							System.out.println(Thread.currentThread().getName() + " Break --- " + loc);
+						// 更新下载信息，已填充和空白更新
+						bisect.setBytesOk(emptyRange, blen);
+						
+						if (emptyRange.getStart() >= emptyRange.getEnd() || bisect.hasBytesDown(emptyRange.getStart())) {
+							System.out.println(Thread.currentThread().getName() + " Break --- " + emptyRange.getStart());
 							break;
 						}
+						// 计算网速
 						long t = System.currentTimeMillis() - lastTime;
 						if (t >= 1000) {
 							downThread.lastSpeed =  (length - lastLength) * 1000 / (int)t;
 							
 							System.out.println(Thread.currentThread().getName()
 									+ " " + downThread.lastSpeed + "B/s "
-									+ startLoc + "-" + loc);
+									+ startLoc + "-" + emptyRange.getStart());
 							
 							lastLength = length;
 							lastTime = System.currentTimeMillis();

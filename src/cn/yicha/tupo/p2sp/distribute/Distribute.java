@@ -22,6 +22,8 @@ public interface Distribute {
 	
 	public RangeInfo getNextRangeInfo();
 	
+	public void collectRangeInfo(RangeInfo range);
+	
 	public boolean isCompleted();
 	
 	public List<UriInfo> getAllUriInfos();

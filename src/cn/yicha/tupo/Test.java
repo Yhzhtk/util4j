@@ -30,6 +30,6 @@ public class Test {
 			}
 		}
 		long end = System.currentTimeMillis();
-		System.out.println("总线程数：" + urls.size() + "  总耗时：" + (end - start));
+		System.out.println("Url Count：" + urls.size() + "  All Time：" + (end - start));
 	}
 }
