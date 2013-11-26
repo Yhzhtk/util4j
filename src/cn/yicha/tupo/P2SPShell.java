@@ -14,14 +14,70 @@ import cn.yicha.tupo.p2sp.P2SPDownload;
  */
 public class P2SPShell {
 
-	static String helpStr = "";
+/**
+http://mirror.astpage.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz
+http://mirror.vilkam.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz
+http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz
+*/
+	static String exampleStr = "======================================\nExample URLS:\n"
+			+ "http://mirror.astpage.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz\n"
+			+ "http://mirror.vilkam.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz\n"
+			+ "http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz"
+			+ "\n======================================";
+
+	static String descStr = "  P2SPShell(P2SP命令控制工具)\n"
+			+ "--------------------------------------\n"
+			+ "  description\tP2SP下载文件(多线程多资源地址，资源数量动态增减)。\n"
+			+ "  version\t1.0\n  author\t顾代辉\n  date\t2013-11-26";
+
+	static String helpStr = "======================================\n"
+			+ "  help(h)\t查看帮助\n  example(e)\t示例地址\n  p2sp(p)\t开始P2SP下载\n  exit\t退出\n"
+			+ "--------------------------------------\n"
+			+ "  check(c)\t检测是否下载完成\n  add(a)\t在接下来的一行输入新增的URL地址\n"
+			+ "  remove(r)\t在接下来的一行输入需要删除的URL地址\n  stop(s)\t停止下载\n"
+			+ "======================================";
 
 	static Scanner scanner = new Scanner(System.in);
 
 	public static void main(String[] args) {
+		printlnMsg(descStr);
+		printlnMsg(helpStr);
+		while (true) {
+			String l = getNextString("> ", ".*").trim();
+			if (l.equals("help") || l.equals("h")) {
+				printlnMsg(helpStr);
+			} else if (l.equals("example") || l.equals("e")) {
+				printlnMsg(exampleStr);
+			} else if(l.equals("p2sp") || l.equals("p")){
+				startP2SP();
+			} else if(l.trim().equals("exit")){
+				System.exit(0);
+			} else if(l.equals("gc")){
+				System.gc();
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				System.gc();
+			}
+			else if(!l.trim().equals("")){
+				printlnMsg("没有命令：" + l);
+			}
+		}
+	}
+	
+	/**
+	 * 开始一次P2SP下载
+	 */
+	public static void startP2SP(){
+		int n = getNextInt("请输入初始URL数量：", 0, 20);
 
-		int n = getNextInt("请输入初始URL数量：", 1, 10);
-
+		if(n == 0){
+			printlnMsg("资源数为0，返回不下载！");
+			return;
+		}
+		
 		List<String> urls = new ArrayList<String>(n);
 		printlnMsg("请输入" + n + "行URL");
 		for (int i = 0; i < n; i++) {
@@ -37,32 +93,35 @@ public class P2SPShell {
 		p2sp.start();
 
 		while (true) {
-			String l = getNext();
+			String l = getNext().trim();
 			// 检测是否完成
-			if (l.trim().equals("check")) {
+			if (l.equals("check") || l.equals("c")) {
 				if (p2sp.isComplete()) {
+					System.gc();
 					break;
 				} else {
-					printMsg("\nCheck Not Complete\n");
+					printMsg("================\nCheck Not Complete\n================\n");
 				}
-			} else if (l.trim().equals("add")) {
-				String uri = getNextString("请输入新增URL：", "http.*");
-				if (uri.equals("http")) {
+			} else if (l.equals("add") || l.equals("a")) {
+				String uri = getNextString("请输入新增URL：", "(|http.*)");
+				if (uri.trim().equals("")) {
 					continue;
 				}
 				p2sp.addUrl(uri);
-			} else if (l.trim().equals("remove")) {
-				String uri = getNextString("请输入删除URL：", "http.*");
-				if (uri.equals("http")) {
+			} else if (l.equals("remove") || l.equals("r")) {
+				String uri = getNextString("请输入删除URL：", "(|http.*)");
+				if (uri.trim().equals("")) {
 					continue;
 				}
 				p2sp.removeUrl(uri);
-			} else if (l.trim().equals("stop")) {
+			} else if (l.equals("stop") || l.equals("s")) {
 				p2sp.stop();
+				p2sp.isComplete();
 			}
 		}
 		long end = System.currentTimeMillis();
-		System.out.print("Uri Count：" + urls.size() + "  All Time：" + (end - start));
+		printlnMsg("下载文件：" + fileName + "  共用时："
+				+ (end - start));
 	}
 
 	/**
@@ -76,7 +135,7 @@ public class P2SPShell {
 	public static int getNextInt(String inputMsg, int start, int end) {
 		int i = Integer.MIN_VALUE;
 		do {
-			printlnMsg(inputMsg);
+			printMsg(inputMsg);
 			try {
 				i = Integer.parseInt(getNext());
 			} catch (Exception e) {
@@ -101,7 +160,7 @@ public class P2SPShell {
 	public static String getNextString(String inputMsg, String regex) {
 		String str = "";
 		do {
-			printlnMsg(inputMsg);
+			printMsg(inputMsg);
 			str = getNext();
 			if (str.matches(regex)) {
 				break;

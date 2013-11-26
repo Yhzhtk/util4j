@@ -2,9 +2,14 @@ package cn.yicha.tupo.http.file;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.lang.reflect.Method;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.security.AccessController;
+import java.security.PrivilegedActionException;
+import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Queue;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -21,6 +26,7 @@ public class FileFactory {
 
 	// 使用vector保证线程安全性
 	static HashMap<String, Vector<RandomAccessFile>> allRfs = new HashMap<String, Vector<RandomAccessFile>>();
+	static HashMap<String, Vector<FileChannel>> allFcs = new HashMap<String, Vector<FileChannel>>();
 	static HashMap<String, ConcurrentLinkedQueue<MappedByteBuffer>> freeMbbs = new HashMap<String, ConcurrentLinkedQueue<MappedByteBuffer>>();
 
 	/**
@@ -48,10 +54,16 @@ public class FileFactory {
 			files = new Vector<RandomAccessFile>();
 			allRfs.put(fileName, files);
 		}
+		Vector<FileChannel> fcs = allFcs.get(fileName);
+		if (fcs == null) {
+			fcs = new Vector<FileChannel>();
+			allFcs.put(fileName, fcs);
+		}
 		try {
 			RandomAccessFile rf = new RandomAccessFile(fileName, "rw");
 			files.add(rf);
 			FileChannel fc = rf.getChannel();
+			fcs.add(fc);
 			mbb = fc.map(FileChannel.MapMode.READ_WRITE, 0, fileSize);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -82,8 +94,18 @@ public class FileFactory {
 	 * @param fileName
 	 */
 	public static void closeFile(String fileName) {
-		allRfs.remove(fileName);
-		freeMbbs.remove(fileName);
+		Vector<FileChannel> fcs = allFcs.get(fileName);
+		if(fcs != null){
+			for (FileChannel fc : fcs) {
+				try {
+					fc.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				allFcs.remove(fc);
+				fc = null;
+			}
+		}
 		Vector<RandomAccessFile> files = allRfs.get(fileName);
 		if(files != null){
 			for (RandomAccessFile file : files) {
@@ -92,9 +114,35 @@ public class FileFactory {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				allRfs.remove(file);
 				file = null;
 			}
 		}
+		ConcurrentLinkedQueue<MappedByteBuffer> mbbs = freeMbbs.get(fileName);
+		if(mbbs != null){
+			Iterator<MappedByteBuffer> iter = mbbs.iterator();
+			while(iter.hasNext()){
+				MappedByteBuffer mbb = iter.next();
+				mbbs.remove(mbb);
+				try {
+					// 非安全的关闭
+					unsafeUnmap(mbb);
+				} catch (PrivilegedActionException e) {
+					e.printStackTrace();
+				}
+				try {
+					Thread.sleep(500);
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				mbb = null;
+			}
+		}
+		allRfs.remove(fileName);
+		freeMbbs.remove(fileName);
+		
+		// 垃圾回收，关闭文件句柄
+		System.gc();
 	}
 
 	/**
@@ -105,4 +153,23 @@ public class FileFactory {
 			closeFile(fileName);
 		}
 	}
+	
+	/**
+	 * 关闭mbb
+	 * @param mbb
+	 * @throws PrivilegedActionException
+	 */
+    private static void unsafeUnmap(final MappedByteBuffer mbb) throws PrivilegedActionException {
+        AccessController.doPrivileged(new PrivilegedExceptionAction<Object>() {
+            public Object run() throws Exception {
+                Method getCleanerMethod = mbb.getClass().getMethod("cleaner");
+                getCleanerMethod.setAccessible(true);
+                Object cleaner = getCleanerMethod.invoke(mbb); // sun.misc.Cleaner instance
+                Method cleanMethod = cleaner.getClass().getMethod("clean");
+                cleanMethod.invoke(cleaner);
+                return null;
+            }
+        });
+    }
+
 }
