@@ -30,9 +30,14 @@ import cn.yicha.tupo.p2sp.entity.RangeInfo;
 public class HttpClientUtil {
 
 	static boolean usePool = false;
+	static RequestConfig config;
 	static CloseableHttpClient httpClient;
 
 	static {
+		config = RequestConfig.custom()
+				.setConnectTimeout(30000).setConnectionRequestTimeout(30000)
+				.setSocketTimeout(30000).build();
+		
 		if (usePool) {
 			// 使用http连接池
 			PoolingHttpClientConnectionManager connManager = new PoolingHttpClientConnectionManager();
@@ -42,10 +47,6 @@ public class HttpClientUtil {
 					.setTcpNoDelay(true).setSoKeepAlive(true)
 					.setSoReuseAddress(true).build();
 			connManager.setDefaultSocketConfig(defaultSocketConfig);
-
-			RequestConfig config = RequestConfig.custom()
-					.setConnectTimeout(5000).setConnectionRequestTimeout(5000)
-					.setSocketTimeout(5000).build();
 
 			httpClient = HttpClients
 					.custom()
@@ -186,9 +187,11 @@ public class HttpClientUtil {
 	 * @param startLoc
 	 * @param endLoc
 	 * @return
+	 * @throws IOException 
 	 */
 	public static int downloadFile(RandomDown downThread, String url,
-			BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) {
+			BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) throws Exception {
+		int length = 0;
 		try {
 			HttpGet httpGet = new HttpGet(url);
 
@@ -199,58 +202,79 @@ public class HttpClientUtil {
 				sb.append(emptyRange.getEnd());
 			}
 			httpGet.setHeader("Range", sb.toString());
-
-			CloseableHttpResponse response1 = httpClient.execute(httpGet);
-			// System.out.println(response1.getStatusLine());
-			if (response1.getStatusLine().getStatusCode() == 206) {
-				HttpEntity entity = response1.getEntity();
-				try {
-					int startLoc = emptyRange.getStart();
-					mbb.position(startLoc);
-					// rf.seek(startLoc);
-					InputStream is = entity.getContent();
+			httpGet.setConfig(config);
+			
+			try{
+				CloseableHttpResponse response1 = httpClient.execute(httpGet);
+				// System.out.println(response1.getStatusLine());
+				if (response1.getStatusLine().getStatusCode() == 206) {
+					HttpEntity entity = response1.getEntity();
+					length = dealPartDown(downThread, entity, bisect, mbb, emptyRange);
+				}
+				httpGet.releaseConnection();
+			} catch(Exception e1){
+				httpGet.abort();
+			}
+		} catch (Exception e) {
+			throw e;
+		}
+		return length;
+	}
+	
+	/**
+	 * 使用BisectDistribute的读取数据操作
+	 * @param downThread
+	 * @param entity
+	 * @param bisect
+	 * @param mbb
+	 * @param emptyRange
+	 * @return
+	 * @throws IllegalStateException
+	 * @throws IOException
+	 */
+	private static int dealPartDown(RandomDown downThread, HttpEntity entity, BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) throws IllegalStateException, IOException{
+		int startLoc = emptyRange.getStart();
+		mbb.position(startLoc);
+		// rf.seek(startLoc);
+		InputStream is = entity.getContent();
+		
+		int length = 0, lastLength = 0;
+		long lastTime = System.currentTimeMillis();
+		
+		int blen = 0;
+		byte[] bytes = new byte[bisect.getBaseSize()];
+		
+		try{
+			while ((blen = is.read(bytes)) != -1
+					&& !downThread.stopFlag) {
+				// rf.write(bytes, 0, blen);
+				mbb.put(bytes, 0, blen);
+				length += blen;
+				// 更新下载信息，已填充和空白更新
+				bisect.setBytesOk(emptyRange, blen);
+				
+				if (emptyRange.getStart() >= emptyRange.getEnd() || bisect.hasBytesDown(emptyRange.getStart())) {
+					System.out.println(Thread.currentThread().getName() + " Break --- " + emptyRange.getStart());
+					break;
+				}
+				// 计算网速
+				long t = System.currentTimeMillis() - lastTime;
+				if (t >= 1000) {
+					downThread.lastSpeed =  (length - lastLength) * 1000 / (int)t;
 					
-					int length = 0, lastLength = 0;
-					long lastTime = System.currentTimeMillis();
+					System.out.println(Thread.currentThread().getName()
+							+ " " + downThread.lastSpeed + "B/s "
+							+ startLoc + "-" + emptyRange.getStart());
 					
-					int blen = 0;
-					byte[] bytes = new byte[bisect.getBaseSize()];
-					
-					while ((blen = is.read(bytes)) != -1
-							&& !downThread.stopFlag) {
-						// rf.write(bytes, 0, blen);
-						mbb.put(bytes, 0, blen);
-						length += blen;
-						// 更新下载信息，已填充和空白更新
-						bisect.setBytesOk(emptyRange, blen);
-						
-						if (emptyRange.getStart() >= emptyRange.getEnd() || bisect.hasBytesDown(emptyRange.getStart())) {
-							System.out.println(Thread.currentThread().getName() + " Break --- " + emptyRange.getStart());
-							break;
-						}
-						// 计算网速
-						long t = System.currentTimeMillis() - lastTime;
-						if (t >= 1000) {
-							downThread.lastSpeed =  (length - lastLength) * 1000 / (int)t;
-							
-							System.out.println(Thread.currentThread().getName()
-									+ " " + downThread.lastSpeed + "B/s "
-									+ startLoc + "-" + emptyRange.getStart());
-							
-							lastLength = length;
-							lastTime = System.currentTimeMillis();
-							downThread.lastTime = lastTime;
-						}
-					}
-					return length;
-				} finally {
-					response1.close();
+					lastLength = length;
+					lastTime = System.currentTimeMillis();
+					downThread.lastTime = lastTime;
 				}
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
+		}finally{
+			is.close();
 		}
-		return -1;
+		return length;
 	}
 
 	/**

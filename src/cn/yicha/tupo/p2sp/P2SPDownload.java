@@ -164,7 +164,7 @@ public class P2SPDownload {
 	 */
 	public void close(){
 		FileFactory.closeFile(fileName);
-		threadPool.shutdownNow();
+		//threadPool.shutdownNow();
 	}
 
 	public BisectDistribute getDistribute() {

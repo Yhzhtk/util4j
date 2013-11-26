@@ -44,11 +44,15 @@ public class JudgeRandomDown extends RandomDown {
 					+ " START -- " + range + " " + uriInfo.getUri());
 			uriInfo.setNowRange(range);
 
-			int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(),
-					distri, mbb, range);
-
-			System.out.println(Thread.currentThread().getName() + " rIndex:" + range.getIndex() + " range:"
-					+ startLoc + "-" + (startLoc + len) + " endLoc:" + endLoc);
+			try {
+				int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(),
+						distri, mbb, range);
+				System.out.println(Thread.currentThread().getName() + " rIndex:" + range.getIndex() + " range:"
+						+ startLoc + "-" + (startLoc + len) + " endLoc:" + endLoc);
+			} catch (Exception e) {
+				e.printStackTrace();
+				// 此处检测资源是否可以用，如果不可用直接结束当前线程
+			}
 
 			// 判断回收range
 			distri.collectRangeInfo(range);

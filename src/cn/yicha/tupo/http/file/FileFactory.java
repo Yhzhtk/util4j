@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.security.PrivilegedActionException;
 import java.security.PrivilegedExceptionAction;
 import java.util.HashMap;
@@ -127,12 +128,8 @@ public class FileFactory {
 				try {
 					// 非安全的关闭
 					unsafeUnmap(mbb);
+					unsafeUnmap2(mbb);
 				} catch (PrivilegedActionException e) {
-					e.printStackTrace();
-				}
-				try {
-					Thread.sleep(500);
-				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 				mbb = null;
@@ -170,6 +167,24 @@ public class FileFactory {
                 return null;
             }
         });
+    }
+    
+	private static void unsafeUnmap2(final MappedByteBuffer mbb) {
+		AccessController.doPrivileged(new PrivilegedAction<Object>() {
+			public Object run() {
+				try {
+					Method getCleanerMethod = mbb.getClass().getMethod(
+							"cleaner", new Class[0]);
+					getCleanerMethod.setAccessible(true);
+					sun.misc.Cleaner cleaner = (sun.misc.Cleaner) getCleanerMethod
+							.invoke(mbb, new Object[0]);
+					cleaner.clean();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				return null;
+			}
+		});
     }
 
 }
