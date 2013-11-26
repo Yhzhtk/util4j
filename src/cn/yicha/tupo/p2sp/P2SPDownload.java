@@ -50,7 +50,6 @@ public class P2SPDownload {
 		for (int i = 0; i < urls.size(); i++) {
 			JudgeRandomDown rd = new JudgeRandomDown(distribute,
 					uris.get(i), this);
-			rd.setName("T" + i);
 			threads.add(rd);
 		}
 	}
@@ -102,14 +101,32 @@ public class P2SPDownload {
 	/**
 	 * 添加新源
 	 * @param uri
-	 * @param p2sp
 	 */
-	public synchronized void addUrl(String uri, P2SPDownload p2sp){
+	public synchronized void addUrl(String uri){
 		UriInfo uriInfo = UriFactory.getUriInstance(uri);
 		distribute.addUri(uriInfo);
-		JudgeRandomDown rd = new JudgeRandomDown(distribute, uriInfo, p2sp);
+		JudgeRandomDown rd = new JudgeRandomDown(distribute, uriInfo, this);
 		threads.add(rd);
 		threadPool.execute(rd);
+	}
+	
+	/**
+	 * 删除资源
+	 * @param url
+	 */
+	public synchronized void removeUrl(String url){
+		List<RandomDown> removes = new ArrayList<RandomDown>();
+		for (RandomDown t : threads) {
+			if(t.getUriInfo().getUri().equals(url)){
+				removes.add(t);
+			}
+		}
+		for(RandomDown t : removes){
+			t.stopFlag();
+			distribute.deleteUri(t.getUriInfo());
+			threads.remove(t);
+			System.out.println("移除资源：" + t.getUriInfo().getUri());
+		}
 	}
 
 	/**

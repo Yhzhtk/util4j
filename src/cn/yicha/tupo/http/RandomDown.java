@@ -22,7 +22,6 @@ public class RandomDown implements Runnable {
 	protected long lastTime;
 	protected int lastSpeed;
 
-	protected String name;
 	protected BisectDistribute distri;
 	protected UriInfo uriInfo;
 	protected P2SPDownload p2sp;
@@ -80,11 +79,7 @@ public class RandomDown implements Runnable {
 		System.out.println("RandomDown run method");
 	}
 	
-	public String getName() {
-		return name;
-	}
-
-	public void setName(String name) {
-		this.name = name;
+	public String getThreadName() {
+		return Thread.currentThread().getName();
 	}
 }

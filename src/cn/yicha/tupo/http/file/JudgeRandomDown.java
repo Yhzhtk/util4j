@@ -34,6 +34,7 @@ public class JudgeRandomDown extends RandomDown {
 				if(p2sp.checkHasSlowThread()){
 					continue;
 				}else{
+					System.out.println("下载结果：" + p2sp.isComplete());
 					break;
 				}
 			}
@@ -50,11 +51,16 @@ public class JudgeRandomDown extends RandomDown {
 					+ range.getIndex() + " range:" + startLoc + "-"
 					+ (startLoc + len) + " endLoc:" + endLoc);
 			
-			distri.removeEmpty(range);
+			range.setStart(range.getStart() + len);
+			if(range.getStart() >= range.getEnd()){
+				distri.removeEmpty(range);
+			} else{
+				range.setUsed(false);
+			}
 		};
 		// 该线程下载结束
 		long end = System.currentTimeMillis();
-		System.out.println("线程：" + this.getName() + " 结束， stopFlag:" + stopFlag + "，用时" + (end - start));
+		System.out.println("线程：" + this.getThreadName() + " 结束， stopFlag:" + stopFlag + "，用时" + (end - start));
 		
 		// 关闭线程和文件句柄
 		close();

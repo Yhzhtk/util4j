@@ -13,110 +13,118 @@ import cn.yicha.tupo.p2sp.P2SPDownload;
  * @date 2013-11-25
  */
 public class P2SPShell {
-	
+
 	static String helpStr = "";
 
 	static Scanner scanner = new Scanner(System.in);
-	
+
 	public static void main(String[] args) {
-		
+
 		int n = getNextInt("请输入初始URL数量：", 1, 10);
-		
+
 		List<String> urls = new ArrayList<String>(n);
 		printlnMsg("请输入" + n + "行URL");
-		for(int i = 0; i < n; i++){
+		for (int i = 0; i < n; i++) {
 			urls.add(getNextString(i + ":", "http.*"));
 		}
-		
+
 		String fileName = getNextString("请输入文件名：", "[c-fC-F]:/.*");
-		
+
 		int i = getNextInt("请输入最大允许的线程数：", 1, 10);
 		P2SPDownload p2sp = new P2SPDownload(urls, fileName, i);
-		
+
 		long start = System.currentTimeMillis();
 		p2sp.start();
-		
-		while(true){
+
+		while (true) {
 			String l = getNext();
 			// 检测是否完成
-			if(l.trim().equals("check")){
-				if(p2sp.isComplete()){
+			if (l.trim().equals("check")) {
+				if (p2sp.isComplete()) {
 					break;
-				}else{
+				} else {
 					printMsg("\nCheck Not Complete\n");
 				}
-			}else if(l.trim().equals("add")){
+			} else if (l.trim().equals("add")) {
 				String uri = getNextString("请输入需要添加的Url", "http.*");
-				if(uri.equals("http")){
+				if (uri.equals("http")) {
 					continue;
 				}
-				p2sp.addUrl(uri, p2sp);
-			} else if(l.trim().equals("stop")){
+				p2sp.addUrl(uri);
+			} else if (l.trim().equals("remove")) {
+				String uri = getNextString("请输入需要添加的Url", "http.*");
+				if (uri.equals("http")) {
+					continue;
+				}
+				p2sp.removeUrl(uri);
+			} else if (l.trim().equals("stop")) {
 				p2sp.stop();
 			}
 		}
 		long end = System.currentTimeMillis();
 		System.out.println("总线程数：" + urls.size() + "  总耗时：" + (end - start));
 	}
-	
+
 	/**
 	 * 获取在指定范围的整型
+	 * 
 	 * @param inputMsg
 	 * @param start
 	 * @param end
 	 * @return
 	 */
-	public static int getNextInt(String inputMsg, int start, int end){
+	public static int getNextInt(String inputMsg, int start, int end) {
 		int i = Integer.MIN_VALUE;
-		do{
+		do {
 			printMsg(inputMsg);
-			try{
-				i = Integer.parseInt(getNext()); 
-			}catch(Exception e){
+			try {
+				i = Integer.parseInt(getNext());
+			} catch (Exception e) {
 				System.out.println(e.getMessage());
 			}
-			if(i >= start && i <= end){
+			if (i >= start && i <= end) {
 				break;
 			}
 			printMsg("输入不合法：");
-		}while(true);
-		
+		} while (true);
+
 		return i;
 	}
-	
+
 	/**
 	 * 获取匹配正则的字符串
+	 * 
 	 * @param inputMsg
 	 * @param regex
 	 * @return
 	 */
-	public static String getNextString(String inputMsg, String regex){
+	public static String getNextString(String inputMsg, String regex) {
 		String str = "";
-		do{
+		do {
 			printMsg(inputMsg);
 			str = getNext();
-			if(str.matches(regex)){
+			if (str.matches(regex)) {
 				break;
 			}
 			printMsg("输入不合法：");
-		}while(true);
+		} while (true);
 		return str;
 	}
 
-	public static String getNext(){
+	public static String getNext() {
 		String l = scanner.nextLine();
-		if(l.equals("exit")){
+		if (l.equals("exit")) {
 			System.exit(0);
 		}
 		return l;
 	}
-	
-	public static void printMsg(String msg){
+
+	public static void printMsg(String msg) {
 		System.out.print(msg);
 	}
-	
-	public static void printlnMsg(String msg){
+
+	public static void printlnMsg(String msg) {
 		System.out.println(msg);
 	}
-	
+
 }

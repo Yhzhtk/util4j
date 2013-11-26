@@ -169,6 +169,7 @@ public class BisectDistribute implements Distribute {
 			// 不能等于end
 			if (loc >= r.getStart() && loc < r.getEnd()) {
 				res = true;
+				break;
 			}
 		}
 		lock.unlock();
