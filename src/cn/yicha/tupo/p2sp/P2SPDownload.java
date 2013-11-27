@@ -63,7 +63,7 @@ public class P2SPDownload {
 		}
 		// 启动之后延时1秒
 		try {
-			Thread.sleep(1000);
+			Thread.sleep(500);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -164,7 +164,8 @@ public class P2SPDownload {
 	 */
 	public void close(){
 		FileFactory.closeFile(fileName);
-		//threadPool.shutdownNow();
+		threadPool.shutdownNow();
+		threadPool = null;
 	}
 
 	public BisectDistribute getDistribute() {

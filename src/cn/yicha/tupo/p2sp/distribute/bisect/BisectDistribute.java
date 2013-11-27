@@ -29,12 +29,12 @@ public class BisectDistribute implements Distribute {
 	private List<UriInfo> uris;
 
 	private int rangeIndex = 0;
-	private SortedSet<RangeInfo> fillRanges;
-	private SortedSet<RangeInfo> emptyRanges;
+	private volatile SortedSet<RangeInfo> fillRanges;
+	private volatile SortedSet<RangeInfo> emptyRanges;
 	
 	private int minRangeSize = 2048;
 	private Comparator<RangeInfo> rangeComparator;
-	private List<RangeInfo> sortedEmptyRanges;
+	private volatile List<RangeInfo> sortedEmptyRanges;
 	
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -77,12 +77,12 @@ public class BisectDistribute implements Distribute {
 	}
 
 	@Override
-	public void addUri(UriInfo uri) {
+	public synchronized void addUri(UriInfo uri) {
 		this.uris.add(uri);
 	}
 
 	@Override
-	public void deleteUri(UriInfo uri) {
+	public synchronized void deleteUri(UriInfo uri) {
 		this.uris.remove(uri);
 		if(uri != null && uri.getNowRange() != null){
 			// 当前正在下载的设为未使用
@@ -129,15 +129,16 @@ public class BisectDistribute implements Distribute {
 
 	@Override
 	public void collectRangeInfo(RangeInfo range) {
-		if(range.getStart() < range.getEnd()){
-			range.setUsed(false);
-		}else{
+		lock.lock();
+		range.setUsed(false);
+		if(range.getStart() >= range.getEnd()){
 			removeEmpty(range);
 		}
+		lock.unlock();
 	}
 
 	@Override
-	public boolean isCompleted() {
+	public synchronized boolean isCompleted() {
 		return emptyRanges.size() == 0;
 	}
 

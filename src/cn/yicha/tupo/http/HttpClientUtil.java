@@ -29,14 +29,14 @@ import cn.yicha.tupo.p2sp.entity.RangeInfo;
  */
 public class HttpClientUtil {
 
-	static boolean usePool = false;
+	static boolean usePool = true;
 	static RequestConfig config;
 	static CloseableHttpClient httpClient;
 
 	static {
 		config = RequestConfig.custom()
-				.setConnectTimeout(30000).setConnectionRequestTimeout(30000)
-				.setSocketTimeout(30000).build();
+				.setConnectTimeout(10000).setConnectionRequestTimeout(10000)
+				.setSocketTimeout(10000).build();
 		
 		if (usePool) {
 			// 使用http连接池
@@ -210,10 +210,14 @@ public class HttpClientUtil {
 				if (response1.getStatusLine().getStatusCode() == 206) {
 					HttpEntity entity = response1.getEntity();
 					length = dealPartDown(downThread, entity, bisect, mbb, emptyRange);
+				} else{
+					throw new Exception("StatusCode is not 206");
 				}
-				httpGet.releaseConnection();
 			} catch(Exception e1){
 				httpGet.abort();
+				throw e1;
+			} finally{
+				httpGet.releaseConnection();
 			}
 		} catch (Exception e) {
 			throw e;
@@ -232,7 +236,7 @@ public class HttpClientUtil {
 	 * @throws IllegalStateException
 	 * @throws IOException
 	 */
-	private static int dealPartDown(RandomDown downThread, HttpEntity entity, BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) throws IllegalStateException, IOException{
+	private static int dealPartDown(RandomDown downThread, HttpEntity entity, BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) throws Exception{
 		int startLoc = emptyRange.getStart();
 		mbb.position(startLoc);
 		// rf.seek(startLoc);
@@ -271,7 +275,10 @@ public class HttpClientUtil {
 					downThread.lastTime = lastTime;
 				}
 			}
-		}finally{
+		}catch(Exception e){
+			throw e;
+		}
+		finally{
 			is.close();
 		}
 		return length;
