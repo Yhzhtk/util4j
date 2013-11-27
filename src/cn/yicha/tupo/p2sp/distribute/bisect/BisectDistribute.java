@@ -1,4 +1,4 @@
-package cn.yicha.tupo.p2sp.distribute.bisect;
+  package cn.yicha.tupo.p2sp.distribute.bisect;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -33,6 +33,7 @@ public class BisectDistribute implements Distribute {
 	private volatile List<RangeInfo> emptyRanges;
 	
 	private int minRangeSize = 10240;
+	private Comparator<RangeInfo> startComparator;
 	private Comparator<RangeInfo> rangeComparator;
 	
 	private ReentrantLock lock = new ReentrantLock();
@@ -42,11 +43,12 @@ public class BisectDistribute implements Distribute {
 	}
 
 	public BisectDistribute(int fileSize, List<UriInfo> uris) {
-		fillRanges = new TreeSet<RangeInfo>(new StartComparator());
+		startComparator = new StartComparator();
+		rangeComparator = new RangeComparator();
+		
+		fillRanges = new TreeSet<RangeInfo>(startComparator);
 		emptyRanges = new ArrayList<RangeInfo>();
 		
-		rangeComparator = new RangeComparator();
-
 		this.baseSize = 1024;
 		this.fileSize = fileSize;
 		this.uris = uris;
@@ -112,7 +114,9 @@ public class BisectDistribute implements Distribute {
 		
 		int s = r.getStart();
 		int e = r.getEnd();
-		int m = (s + e) / 2;
+		int c = (e - s) / baseSize; // 块数
+		c = c / 2 + 1;
+		int m = s + (c * baseSize);
 		r.setEnd(m);
 
 		RangeInfo n = RangeFactory.getRangeInstance(rangeIndex++);
@@ -185,20 +189,22 @@ public class BisectDistribute implements Distribute {
 	private void setFillInfo(int loc, int blen) {
 		Iterator<RangeInfo> iter = fillRanges.iterator();
 		RangeInfo r = null;
+		int end = loc + blen;
 		while (iter.hasNext()) {
 			r = iter.next();
-			if (loc >= r.getStart() && loc <= r.getEnd()) {
-				break;
-			}
-			r = null;
+			if (end >= r.getStart() && end <= r.getEnd()) {
+				r.setStart(Math.min(loc, r.getStart()));
+				return;
+			} else if (loc >= r.getStart() && loc <= r.getEnd()) {
+				// 设置结尾处
+				r.setEnd(Math.max(end, r.getEnd()));
+				return;
+			} 
 		}
-		if (r == null) {
-			r = RangeFactory.getRangeInstance(rangeIndex++);
-			r.setStart(loc);
-			fillRanges.add(r);
-		}
-		// 设置结尾处
-		r.setEnd(Math.max(loc + blen, r.getEnd()));
+		r = RangeFactory.getRangeInstance(rangeIndex++);
+		r.setStart(loc);
+		r.setEnd(end);
+		fillRanges.add(r);
 	}
 
 	private void addEmpty(RangeInfo r) {
@@ -216,5 +222,22 @@ public class BisectDistribute implements Distribute {
 			return emptyRanges.get(0);
 		}
 		return null;
+	}
+
+	/**
+	 * 显示当前RangeInfo情况
+	 */
+	public void showRange() {
+		StringBuffer buf = new StringBuffer();
+		buf.append("\n---filled--\n");
+		for(RangeInfo r : fillRanges){
+			buf.append(r).append("\n");
+		}
+		buf.append("---empty---\n");
+		for(RangeInfo r : emptyRanges){
+			buf.append(r).append("\n");
+		}
+		buf.append("-----------\n\n");
+		System.out.println(buf.toString());
 	}
 }

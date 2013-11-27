@@ -141,6 +141,13 @@ public class P2SPDownload {
 	}
 
 	/**
+	 * 显示当前Range情况
+	 */
+	public void showRange() {
+		distribute.showRange();
+	}
+	
+	/**
 	 * 提供子线程通信的接口
 	 * @param tIndex
 	 */

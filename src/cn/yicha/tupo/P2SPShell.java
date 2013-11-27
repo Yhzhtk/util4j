@@ -15,11 +15,16 @@ import cn.yicha.tupo.p2sp.P2SPDownload;
  */
 public class P2SPShell {
 
-/**
-http://mirror.astpage.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz
-http://mirror.vilkam.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz
-http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz
-*/
+	/**
+	 * http://mirror.astpage.ru/centos/6.4/updates/i386/repodata/
+	 * edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f
+	 * -primary.xml.gz http://mirror.vilkam.ru/centos/6.4/updates/i386/repodata/
+	 * edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f
+	 * -primary.xml.gz
+	 * http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata
+	 * /edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f
+	 * -primary.xml.gz
+	 */
 	static String exampleStr = "======================================\nExample URLS:\n"
 			+ "http://mirror.astpage.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz\n"
 			+ "http://mirror.vilkam.ru/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz\n"
@@ -35,7 +40,7 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 			+ "  help(h)\t查看帮助\n  example(e)\t示例地址\n  p2sp(p)\t开始P2SP下载\n  exit\t退出\n"
 			+ "--------------------------------------\n"
 			+ "  check(c)\t检测是否下载完成\n  add(a)\t在接下来的一行输入新增的URL地址\n"
-			+ "  remove(r)\t在接下来的一行输入需要删除的URL地址\n  stop(s)\t停止下载\n"
+			+ "  remove(r)\t在接下来的一行输入需要删除的URL地址\n  stop(s)\t停止下载\n  view(v)\t查看Range\n"
 			+ "======================================";
 
 	static Scanner scanner = new Scanner(System.in);
@@ -49,13 +54,13 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 				printlnMsg(helpStr);
 			} else if (l.equals("example") || l.equals("e")) {
 				printlnMsg(exampleStr);
-			} else if(l.equals("p2sp") || l.equals("p")){
+			} else if (l.equals("p2sp") || l.equals("p")) {
 				startP2SP();
-			} else if(l.trim().equals("exit")){
+			} else if (l.trim().equals("exit")) {
 				System.exit(0);
-			} else if(l.startsWith("gc")){
+			} else if (l.startsWith("gc")) {
 				String[] infos = l.split(" +");
-				if(infos.length > 1){
+				if (infos.length > 1) {
 					FileFactory.closeFile(infos[1]);
 				}
 				System.gc();
@@ -65,24 +70,23 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 					e.printStackTrace();
 				}
 				System.gc();
-			}
-			else if(!l.trim().equals("")){
+			} else if (!l.trim().equals("")) {
 				printlnMsg("没有命令：" + l);
 			}
 		}
 	}
-	
+
 	/**
 	 * 开始一次P2SP下载
 	 */
-	public static void startP2SP(){
+	public static void startP2SP() {
 		int n = getNextInt("请输入初始URL数量：", 0, 20);
 
-		if(n == 0){
+		if (n == 0) {
 			printlnMsg("资源数为0，返回不下载！");
 			return;
 		}
-		
+
 		List<String> urls = new ArrayList<String>(n);
 		printlnMsg("请输入" + n + "行URL");
 		for (int i = 0; i < n; i++) {
@@ -99,34 +103,39 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 
 		while (true) {
 			String l = getNext().trim();
-			// 检测是否完成
-			if (l.equals("check") || l.equals("c")) {
-				if (p2sp.checkComplete()) {
-					System.gc();
-					break;
-				} else {
-					printMsg("================\nCheck Not Complete\n================\n");
+			try {
+				// 检测是否完成
+				if (l.equals("check") || l.equals("c")) {
+					if (p2sp.checkComplete()) {
+						System.gc();
+						break;
+					} else {
+						printMsg("================\nCheck Not Complete\n================\n");
+					}
+				} else if (l.equals("add") || l.equals("a")) {
+					String uri = getNextString("请输入新增URL：", "(|http.*)");
+					if (uri.trim().equals("")) {
+						continue;
+					}
+					p2sp.addUrl(uri);
+				} else if (l.equals("remove") || l.equals("r")) {
+					String uri = getNextString("请输入删除URL：", "(|http.*)");
+					if (uri.trim().equals("")) {
+						continue;
+					}
+					p2sp.removeUrl(uri);
+				} else if (l.equals("stop") || l.equals("s")) {
+					p2sp.stop();
+					p2sp.checkComplete();
+				} else if (l.equals("view") || l.equals("v")) {
+					p2sp.showRange();
 				}
-			} else if (l.equals("add") || l.equals("a")) {
-				String uri = getNextString("请输入新增URL：", "(|http.*)");
-				if (uri.trim().equals("")) {
-					continue;
-				}
-				p2sp.addUrl(uri);
-			} else if (l.equals("remove") || l.equals("r")) {
-				String uri = getNextString("请输入删除URL：", "(|http.*)");
-				if (uri.trim().equals("")) {
-					continue;
-				}
-				p2sp.removeUrl(uri);
-			} else if (l.equals("stop") || l.equals("s")) {
-				p2sp.stop();
-				p2sp.checkComplete();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}
 		long end = System.currentTimeMillis();
-		printlnMsg("下载文件：" + fileName + "  共用时："
-				+ (end - start));
+		printlnMsg("下载文件：" + fileName + "  共用时：" + (end - start));
 	}
 
 	/**

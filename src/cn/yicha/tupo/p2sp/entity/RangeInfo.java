@@ -17,7 +17,7 @@ public class RangeInfo {
 		return used;
 	}
 
-	public void setUsed(boolean used) {
+	public synchronized void setUsed(boolean used) {
 		this.used = used;
 	}
 
@@ -47,19 +47,19 @@ public class RangeInfo {
 		return index;
 	}
 
-	public void setIndex(int index) {
+	public synchronized void setIndex(int index) {
 		this.index = index;
 	}
 	public int getStart() {
 		return start;
 	}
-	public void setStart(int start) {
+	public synchronized void setStart(int start) {
 		this.start = start;
 	}
 	public int getEnd() {
 		return end;
 	}
-	public void setEnd(int end) {
+	public synchronized void setEnd(int end) {
 		this.end = end;
 	}
 	
