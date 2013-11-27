@@ -24,49 +24,50 @@ public class JudgeRandomDown extends RandomDown {
 	public void run() {
 		// 开始线程时执行
 		boolean r = start();
-		if(!r){
+		if (!r) {
 			System.err.print("start error, check the free of disk or retry");
-			return;
-		}
-
-		RangeInfo range;
-		long start = System.currentTimeMillis();
-		while (!stopFlag) {
-			range = distri.getNextRangeInfo();
-			if (range == null) {
-				// 如果当前为空，则检查是否有失效的资源
-				if (p2sp.checkHasSlowThread()) {
-					continue;
-				} else {
-					break;
+		} else {
+			RangeInfo range;
+			long start = System.currentTimeMillis();
+			while (!stopFlag) {
+				range = distri.getNextRangeInfo();
+				if (range == null) {
+					// 如果当前为空，则检查是否有失效的资源
+					if (p2sp.checkHasSlowThread()) {
+						continue;
+					} else {
+						break;
+					}
 				}
+
+				int startLoc = range.getStart();
+				int endLoc = range.getEnd();
+				System.out.println(Thread.currentThread().getName()
+						+ " START -- " + range + " " + uriInfo.getUri());
+				uriInfo.setNowRange(range);
+
+				try {
+					int len = HttpClientUtil.downloadFile(this,
+							uriInfo.getUri(), distri, mbb, range);
+					System.out.println(Thread.currentThread().getName()
+							+ " rIndex:" + range.getIndex() + " range:"
+							+ startLoc + "-" + (startLoc + len) + " endLoc:"
+							+ endLoc);
+				} catch (Exception e) {
+					e.printStackTrace();
+					// 此处检测资源是否可以用，如果不可用直接结束当前线程
+				}
+
+				// 判断回收range
+				distri.collectRangeInfo(range);
 			}
-
-			int startLoc = range.getStart();
-			int endLoc = range.getEnd();
-			System.out.println(Thread.currentThread().getName()
-					+ " START -- " + range + " " + uriInfo.getUri());
-			uriInfo.setNowRange(range);
-
-			try {
-				int len = HttpClientUtil.downloadFile(this, uriInfo.getUri(),
-						distri, mbb, range);
-				System.out.println(Thread.currentThread().getName() + " rIndex:" + range.getIndex() + " range:"
-						+ startLoc + "-" + (startLoc + len) + " endLoc:" + endLoc);
-			} catch (Exception e) {
-				e.printStackTrace();
-				// 此处检测资源是否可以用，如果不可用直接结束当前线程
-			}
-
-			// 判断回收range
-			distri.collectRangeInfo(range);
+			;
+			// 该线程下载结束
+			long end = System.currentTimeMillis();
+			System.out.println(this.getThreadName() + " END -- StopFlag:"
+					+ stopFlag + " Time:" + (end - start) + " "
+					+ uriInfo.getUri());
 		}
-		;
-		// 该线程下载结束
-		long end = System.currentTimeMillis();
-		System.out.println(this.getThreadName() + " END -- StopFlag:"
-				+ stopFlag + " Time:" + (end - start) + " " + uriInfo.getUri());
-
 		// 关闭线程和文件句柄
 		close();
 	}

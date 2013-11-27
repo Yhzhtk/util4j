@@ -191,7 +191,7 @@ public class HttpClientUtil {
 	 * @throws IOException 
 	 */
 	public static int downloadFile(RandomDown downThread, String url,
-			BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) throws Exception {
+			BisectDistribute bisect, MappedByteBuffer mbb, final RangeInfo emptyRange) throws Exception {
 		int length = 0;
 		try {
 			HttpGet httpGet = new HttpGet(url);
@@ -237,7 +237,7 @@ public class HttpClientUtil {
 	 * @throws Exception
 	 */
 	private static int dealPartDown(RandomDown downThread, HttpEntity entity,
-			BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange)
+			BisectDistribute bisect, MappedByteBuffer mbb, final RangeInfo emptyRange)
 			throws Exception {
 		int startLoc = emptyRange.getStart();
 		mbb.position(startLoc);

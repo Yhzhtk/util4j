@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+import cn.yicha.tupo.http.file.FileFactory;
 import cn.yicha.tupo.p2sp.P2SPDownload;
 
 /**
@@ -52,7 +53,11 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 				startP2SP();
 			} else if(l.trim().equals("exit")){
 				System.exit(0);
-			} else if(l.equals("gc")){
+			} else if(l.startsWith("gc")){
+				String[] infos = l.split(" +");
+				if(infos.length > 1){
+					FileFactory.closeFile(infos[1]);
+				}
 				System.gc();
 				try {
 					Thread.sleep(1000);

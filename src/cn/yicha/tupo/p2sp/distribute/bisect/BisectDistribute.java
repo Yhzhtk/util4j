@@ -30,11 +30,10 @@ public class BisectDistribute implements Distribute {
 
 	private int rangeIndex = 0;
 	private volatile SortedSet<RangeInfo> fillRanges;
-	private volatile SortedSet<RangeInfo> emptyRanges;
+	private volatile List<RangeInfo> emptyRanges;
 	
 	private int minRangeSize = 10240;
 	private Comparator<RangeInfo> rangeComparator;
-	private volatile List<RangeInfo> sortedEmptyRanges;
 	
 	private ReentrantLock lock = new ReentrantLock();
 
@@ -44,10 +43,9 @@ public class BisectDistribute implements Distribute {
 
 	public BisectDistribute(int fileSize, List<UriInfo> uris) {
 		fillRanges = new TreeSet<RangeInfo>(new StartComparator());
-		emptyRanges = new TreeSet<RangeInfo>(new StartComparator());
+		emptyRanges = new ArrayList<RangeInfo>();
 		
 		rangeComparator = new RangeComparator();
-		sortedEmptyRanges = new ArrayList<RangeInfo>();
 
 		this.baseSize = 1024;
 		this.fileSize = fileSize;
@@ -92,7 +90,7 @@ public class BisectDistribute implements Distribute {
 	}
 
 	@Override
-	public RangeInfo getNextRangeInfo() {
+	public synchronized RangeInfo getNextRangeInfo() {
 		lock.lock();
 		RangeInfo r = getMaxEmptyRange();
 		if (r == null) {
@@ -128,7 +126,7 @@ public class BisectDistribute implements Distribute {
 	}
 
 	@Override
-	public void collectRangeInfo(RangeInfo range) {
+	public synchronized void collectRangeInfo(RangeInfo range) {
 		lock.lock();
 		range.setUsed(false);
 		if(range.getStart() >= range.getEnd()){
@@ -155,7 +153,7 @@ public class BisectDistribute implements Distribute {
 		return fileSize;
 	}
 
-	public void setBytesOk(RangeInfo range, int blen) {
+	public synchronized void setBytesOk(final RangeInfo range, int blen) {
 		lock.lock();
 		int loc = range.getStart();
 		// 设置填充信息
@@ -165,12 +163,15 @@ public class BisectDistribute implements Distribute {
 		lock.unlock();
 	}
 
-	public boolean hasBytesDown(int loc) {
+	public synchronized boolean hasBytesDown(int loc) {
 		lock.lock();
 		boolean res = false;
 		Iterator<RangeInfo> iter = fillRanges.iterator();
 		while (iter.hasNext()) {
 			RangeInfo r = iter.next();
+			if(r.getStart() >= r.getEnd()){
+				continue;
+			}
 			// 不能等于end
 			if (loc >= r.getStart() && loc < r.getEnd()) {
 				res = true;
@@ -202,20 +203,17 @@ public class BisectDistribute implements Distribute {
 
 	private void addEmpty(RangeInfo r) {
 		emptyRanges.add(r);
-		sortedEmptyRanges.add(r);
 	}
 
 	public void removeEmpty(RangeInfo r) {
 		emptyRanges.remove(r);
-		sortedEmptyRanges.remove(r);
 		RangeFactory.releaseRangeInfo(r);
 	}
 
 	private RangeInfo getMaxEmptyRange() {
-		Collections.sort(sortedEmptyRanges, rangeComparator);
-		
-		if (sortedEmptyRanges.size() > 0) {
-			return sortedEmptyRanges.get(0);
+		if (emptyRanges.size() > 0) {
+			Collections.sort(emptyRanges, rangeComparator);
+			return emptyRanges.get(0);
 		}
 		return null;
 	}

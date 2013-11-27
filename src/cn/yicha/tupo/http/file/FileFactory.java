@@ -37,7 +37,7 @@ public class FileFactory {
 	 * @param fileSize
 	 * @return
 	 */
-	public static MappedByteBuffer getMappedByteBuffer(String fileName,
+	public synchronized static MappedByteBuffer getMappedByteBuffer(String fileName,
 			long fileSize) {
 		MappedByteBuffer mbb = null;
 
