@@ -25,7 +25,7 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 			+ "http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd0af4dd68de92573e790724525c668c27a9d69858a0b7f-primary.xml.gz"
 			+ "\n======================================";
 
-	static String descStr = "  P2SPShell(P2SP命令控制工具)\n"
+	static String descStr = "\n  P2SPShell(P2SP命令控制工具)\n"
 			+ "--------------------------------------\n"
 			+ "  description\tP2SP下载文件(多线程多资源地址，资源数量动态增减)。\n"
 			+ "  version\t1.0\n  author\t顾代辉\n  date\t2013-11-26";

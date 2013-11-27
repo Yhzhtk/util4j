@@ -86,7 +86,7 @@ public class P2SPManager extends Thread {
 				break;
 			}
 			try {
-				System.out.println("Close a InputStream : " + s.toString());
+				//System.out.println("Close a InputStream : " + s.toString());
 				s.close();
 			} catch (IOException e) {
 				e.printStackTrace();

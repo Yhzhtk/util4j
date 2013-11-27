@@ -54,12 +54,14 @@ public class RandomDown implements Runnable {
 	}
 	
 	/**
-	 * 开始线程时执行
+	 * 开始线程时执行，返回准备结果
+	 * @return
 	 */
-	public void start(){
+	public boolean start(){
 		p2sp.addStartOne(uriInfo.getIndex());
 		mbb = FileFactory.getMappedByteBuffer(
 				p2sp.getFileName(), distri.getFileSize());
+		return mbb != null;
 	}
 	
 	/**

@@ -179,6 +179,12 @@ public class P2SPDownload {
 			threadPool.shutdownNow();
 			threadPool = null;
 		}
+	}
+	
+	/**
+	 * 关闭监控
+	 */
+	public static void closeManager(){
 		if(pmanager != null && pmanager.isAlive()){
 			pmanager.stopManager();
 			pmanager = null;

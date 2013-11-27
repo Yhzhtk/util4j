@@ -23,7 +23,11 @@ public class JudgeRandomDown extends RandomDown {
 	@Override
 	public void run() {
 		// 开始线程时执行
-		start();
+		boolean r = start();
+		if(!r){
+			System.err.print("start error, check the free of disk or retry");
+			return;
+		}
 
 		RangeInfo range;
 		long start = System.currentTimeMillis();

@@ -261,8 +261,13 @@ public class HttpClientUtil {
 				if (downThread.stopFlag
 						|| emptyRange.getStart() >= emptyRange.getEnd()
 						|| bisect.hasBytesDown(emptyRange.getStart())) {
-					System.out.println(Thread.currentThread().getName()
-							+ " Break --- " + emptyRange.getStart());
+					System.out.println(new StringBuffer()
+							.append(Thread.currentThread().getName())
+							.append(" Break --- ")
+							.append(emptyRange.getStart()).append(" stopFlag:")
+							.append(downThread.stopFlag).append(" nowRange:")
+							.append(emptyRange.getStart()).append("-")
+							.append(emptyRange.getEnd()).toString());
 					
 					long t = System.currentTimeMillis() - lastTime;
 					if(t > 0){
