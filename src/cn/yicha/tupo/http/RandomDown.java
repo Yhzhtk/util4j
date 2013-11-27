@@ -57,7 +57,7 @@ public class RandomDown implements Runnable {
 	 * 开始线程时执行
 	 */
 	public void start(){
-		p2sp.addNewOne(uriInfo.getIndex());
+		p2sp.addStartOne(uriInfo.getIndex());
 		mbb = FileFactory.getMappedByteBuffer(
 				p2sp.getFileName(), distri.getFileSize());
 	}
@@ -66,7 +66,7 @@ public class RandomDown implements Runnable {
 	 * 关闭线程结尾工作，包括线程通知和关闭文件句柄
 	 */
 	public void close(){
-		p2sp.completeOne(uriInfo.getIndex());
+		p2sp.subCompleteOne(uriInfo.getIndex());
 		FileFactory.releaseMappedByteBuffer(p2sp.getFileName(), mbb);
 	}
 

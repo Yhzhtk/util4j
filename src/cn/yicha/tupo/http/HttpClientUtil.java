@@ -18,6 +18,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
+import cn.yicha.tupo.p2sp.P2SPDownload;
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
 import cn.yicha.tupo.p2sp.entity.RangeInfo;
 
@@ -233,53 +234,66 @@ public class HttpClientUtil {
 	 * @param mbb
 	 * @param emptyRange
 	 * @return
-	 * @throws IllegalStateException
-	 * @throws IOException
+	 * @throws Exception
 	 */
-	private static int dealPartDown(RandomDown downThread, HttpEntity entity, BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange) throws Exception{
+	private static int dealPartDown(RandomDown downThread, HttpEntity entity,
+			BisectDistribute bisect, MappedByteBuffer mbb, RangeInfo emptyRange)
+			throws Exception {
 		int startLoc = emptyRange.getStart();
 		mbb.position(startLoc);
 		// rf.seek(startLoc);
 		InputStream is = entity.getContent();
-		
+
 		int length = 0, lastLength = 0;
 		long lastTime = System.currentTimeMillis();
-		
+
 		int blen = 0;
 		byte[] bytes = new byte[bisect.getBaseSize()];
-		
-		try{
-			while ((blen = is.read(bytes)) != -1
-					&& !downThread.stopFlag) {
+
+		try {
+			while ((blen = is.read(bytes)) != -1 && !downThread.stopFlag) {
 				// rf.write(bytes, 0, blen);
 				mbb.put(bytes, 0, blen);
 				length += blen;
 				// 更新下载信息，已填充和空白更新
 				bisect.setBytesOk(emptyRange, blen);
-				
-				if (emptyRange.getStart() >= emptyRange.getEnd() || bisect.hasBytesDown(emptyRange.getStart())) {
-					System.out.println(Thread.currentThread().getName() + " Break --- " + emptyRange.getStart());
+
+				if (downThread.stopFlag
+						|| emptyRange.getStart() >= emptyRange.getEnd()
+						|| bisect.hasBytesDown(emptyRange.getStart())) {
+					System.out.println(Thread.currentThread().getName()
+							+ " Break --- " + emptyRange.getStart());
+					
+					long t = System.currentTimeMillis() - lastTime;
+					if(t > 0){
+						downThread.lastSpeed = (int) ((length - lastLength) * 1000 / t);
+					}
+					
+					System.out.println(Thread.currentThread().getName() + " LastCount "
+							+ downThread.lastSpeed + "B/s " + startLoc + "-"
+							+ emptyRange.getStart());
 					break;
 				}
 				// 计算网速
 				long t = System.currentTimeMillis() - lastTime;
 				if (t >= 1000) {
-					downThread.lastSpeed =  (length - lastLength) * 1000 / (int)t;
-					
-					System.out.println(Thread.currentThread().getName()
-							+ " " + downThread.lastSpeed + "B/s "
-							+ startLoc + "-" + emptyRange.getStart());
-					
+					downThread.lastSpeed = (length - lastLength) * 1000
+							/ (int) t;
+
+					System.out.println(Thread.currentThread().getName() + " "
+							+ downThread.lastSpeed + "B/s " + startLoc + "-"
+							+ emptyRange.getStart());
+
 					lastLength = length;
 					lastTime = System.currentTimeMillis();
 					downThread.lastTime = lastTime;
 				}
 			}
-		}catch(Exception e){
+		} catch (Exception e) {
 			throw e;
-		}
-		finally{
-			is.close();
+		} finally {
+			// 异步关闭
+			P2SPDownload.pmanager.addInputStream(is);
 		}
 		return length;
 	}

@@ -20,7 +20,7 @@ public class Test {
 		
 		long start = System.currentTimeMillis();
 		while(true){
-			if(p2sp.isComplete()){
+			if(p2sp.checkComplete()){
 				break;
 			}
 			try {

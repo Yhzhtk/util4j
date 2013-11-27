@@ -86,7 +86,7 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 
 		String fileName = getNextString("请输入文件名：", "[c-fC-F]:/.*");
 
-		int i = getNextInt("请输入最大允许的线程数：", 1, 10);
+		int i = getNextInt("请输入最大允许的线程数：", 1, 100);
 		P2SPDownload p2sp = new P2SPDownload(urls, fileName, i);
 
 		long start = System.currentTimeMillis();
@@ -96,7 +96,7 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 			String l = getNext().trim();
 			// 检测是否完成
 			if (l.equals("check") || l.equals("c")) {
-				if (p2sp.isComplete()) {
+				if (p2sp.checkComplete()) {
 					System.gc();
 					break;
 				} else {
@@ -116,7 +116,7 @@ http://mirror.fairway.ne.jp/centos/6.4/updates/i386/repodata/edc53fcf6f3468f6cdd
 				p2sp.removeUrl(uri);
 			} else if (l.equals("stop") || l.equals("s")) {
 				p2sp.stop();
-				p2sp.isComplete();
+				p2sp.checkComplete();
 			}
 		}
 		long end = System.currentTimeMillis();

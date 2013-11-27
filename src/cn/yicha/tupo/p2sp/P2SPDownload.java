@@ -26,8 +26,16 @@ public class P2SPDownload {
 	private BisectDistribute distribute;
 	private List<JudgeRandomDown> threads;
 	private String fileName;
-	
+
 	private volatile int rCount;
+	
+	// 监控线程
+	public static P2SPManager pmanager;
+	static{
+		// 开启监控
+		pmanager = new P2SPManager();
+		pmanager.start();
+	}
 
 	public P2SPDownload(List<String> urls, String fileName, int maxThread) {
 		threadPool = Executors.newFixedThreadPool(maxThread);
@@ -52,6 +60,9 @@ public class P2SPDownload {
 					uris.get(i), this);
 			threads.add(rd);
 		}
+		
+		// 添加到监控
+		pmanager.addP2SPDownload(this);
 	}
 
 	/**
@@ -133,7 +144,7 @@ public class P2SPDownload {
 	 * 提供子线程通信的接口
 	 * @param tIndex
 	 */
-	public void completeOne(String tIndex) {
+	public synchronized void subCompleteOne(String tIndex) {
 		rCount--;
 	}
 
@@ -141,7 +152,7 @@ public class P2SPDownload {
 	 * 添加一个新的运行实例
 	 * @param index
 	 */
-	public void addNewOne(String index) {
+	public synchronized void addStartOne(String index) {
 		rCount++;
 	}
 	
@@ -149,7 +160,7 @@ public class P2SPDownload {
 	 * 判断下载是否完成
 	 * @return
 	 */
-	public boolean isComplete() {
+	public boolean checkComplete() {
 		boolean res = false;
 		res = (rCount == 0);
 		if(res){
@@ -162,10 +173,16 @@ public class P2SPDownload {
 	/**
 	 * 下载结束时关闭文件等
 	 */
-	public void close(){
+	private void close(){
 		FileFactory.closeFile(fileName);
-		threadPool.shutdownNow();
-		threadPool = null;
+		if(threadPool != null){
+			threadPool.shutdownNow();
+			threadPool = null;
+		}
+		if(pmanager != null && pmanager.isAlive()){
+			pmanager.stopManager();
+			pmanager = null;
+		}
 	}
 
 	public BisectDistribute getDistribute() {
@@ -179,5 +196,4 @@ public class P2SPDownload {
 	public String getFileName() {
 		return fileName;
 	}
-
 }
