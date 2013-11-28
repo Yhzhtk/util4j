@@ -37,6 +37,8 @@ public class BisectDistribute implements Distribute {
 	private Comparator<RangeInfo> rangeComparator;
 	
 	private ReentrantLock lock = new ReentrantLock();
+	
+	public byte[] fileBytes;
 
 	public BisectDistribute(int fileSize) {
 		this(fileSize, new ArrayList<UriInfo>());
@@ -48,6 +50,8 @@ public class BisectDistribute implements Distribute {
 		
 		fillRanges = new TreeSet<RangeInfo>(startComparator);
 		emptyRanges = new ArrayList<RangeInfo>();
+		
+		fileBytes = new byte[fileSize];
 		
 		this.baseSize = 1024;
 		this.fileSize = fileSize;
@@ -101,9 +105,11 @@ public class BisectDistribute implements Distribute {
 		}
 		// 未使用直接返回
 		if(!r.isUsed()){
-			r.setUsed(true);
+			RangeInfo n = RangeFactory.getClone(r);
+			n.setUsed(true);
+			replaceEmpty(r, n);
 			lock.unlock();
-			return r;
+			return n;
 		}
 		
 		// 小于最小允许的大小则不需要再分了
@@ -222,6 +228,11 @@ public class BisectDistribute implements Distribute {
 	public void removeEmpty(RangeInfo r) {
 		emptyRanges.remove(r);
 		RangeFactory.releaseRangeInfo(r);
+	}
+	
+	public void replaceEmpty(RangeInfo s, RangeInfo d){
+		emptyRanges.remove(s);
+		emptyRanges.add(d);
 	}
 
 	private RangeInfo getMaxEmptyRange() {

@@ -37,4 +37,17 @@ public class RangeFactory {
 	public static void releaseRangeInfo(RangeInfo range) {
 		ranges.offer(range);
 	}
+
+	/**
+	 * 获取r的克隆
+	 * @param r
+	 * @return
+	 */
+	public static RangeInfo getClone(RangeInfo r) {
+		RangeInfo range = getRangeInstance(r.getIndex());
+		range.setStart(r.getStart());
+		range.setEnd(r.getEnd());
+		range.setUsed(r.isUsed());
+		return range;
+	}
 }

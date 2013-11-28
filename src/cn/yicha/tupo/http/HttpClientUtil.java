@@ -18,6 +18,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
+import cn.yicha.tupo.http.file.FileUtil;
 import cn.yicha.tupo.p2sp.P2SPDownload;
 import cn.yicha.tupo.p2sp.distribute.bisect.BisectDistribute;
 import cn.yicha.tupo.p2sp.entity.RangeInfo;
@@ -254,6 +255,7 @@ public class HttpClientUtil {
 			while ((blen = is.read(bytes)) != -1 && !downThread.stopFlag) {
 				// rf.write(bytes, 0, blen);
 				mbb.put(bytes, 0, blen);
+				FileUtil.setBytes(bisect.fileBytes, startLoc + length, bytes, 0, blen);
 				length += blen;
 				// 更新下载信息，已填充和空白更新
 				bisect.setBytesOk(emptyRange, blen);

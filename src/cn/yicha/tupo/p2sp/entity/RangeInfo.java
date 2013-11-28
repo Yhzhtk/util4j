@@ -11,7 +11,7 @@ public class RangeInfo {
 	private int index;
 	private int start;
 	private int end;
-	private boolean used;
+	private volatile boolean used;
 	
 	public boolean isUsed() {
 		return used;

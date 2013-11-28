@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Vector;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import cn.yicha.tupo.http.file.FileUtil;
+
 /**
  * 管理线程
  * @author gudh
@@ -67,6 +69,7 @@ public class P2SPManager extends Thread {
 			}
 			if(p2sp.checkComplete()){
 				System.out.println(p2sp.getFileName() + " checked download COMPLETE!");
+				FileUtil.saveFile(p2sp.getFileName() + ".b", p2sp.getDistribute().fileBytes);
 				removes.add(p2sp);
 			}
 		}
