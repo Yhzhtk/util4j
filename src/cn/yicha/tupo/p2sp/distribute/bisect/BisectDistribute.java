@@ -193,11 +193,19 @@ public class BisectDistribute implements Distribute {
 		while (iter.hasNext()) {
 			r = iter.next();
 			if (end >= r.getStart() && end <= r.getEnd()) {
-				r.setStart(Math.min(loc, r.getStart()));
+				if(loc > r.getStart()){
+					System.out.println("Start Change :" + loc + " " + r.getStart());
+					loc = r.getStart();
+				}
+				r.setStart(loc);
 				return;
 			} else if (loc >= r.getStart() && loc <= r.getEnd()) {
 				// 设置结尾处
-				r.setEnd(Math.max(end, r.getEnd()));
+				if(end < r.getEnd()){
+					System.out.println("END Change :" + end + " " + r.getEnd());
+					end = r.getEnd();
+				}
+				r.setEnd(end);
 				return;
 			} 
 		}
@@ -220,6 +228,31 @@ public class BisectDistribute implements Distribute {
 		if (emptyRanges.size() > 0) {
 			Collections.sort(emptyRanges, rangeComparator);
 			return emptyRanges.get(0);
+		} else{
+			// 判断是否填充完成
+			Iterator<RangeInfo> iter = fillRanges.iterator();
+			RangeInfo r = null;
+			int nloc = 0;
+			while(iter.hasNext()){
+				r = iter.next();
+				if(nloc < r.getStart()){
+					// 中间空位
+					RangeInfo range = RangeFactory.getRangeInstance(rangeIndex++);
+					range.setStart(nloc);
+					range.setEnd(r.getStart());
+					addEmpty(range);
+					return range;
+				}
+				nloc = r.getEnd();
+			}
+			// 结束位置
+			if(nloc < fileSize){
+				RangeInfo range = RangeFactory.getRangeInstance(rangeIndex++);
+				range.setStart(nloc);
+				range.setEnd(fileSize);
+				addEmpty(range);
+				return range;
+			}
 		}
 		return null;
 	}

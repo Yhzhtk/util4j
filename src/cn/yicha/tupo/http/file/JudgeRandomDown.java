@@ -30,7 +30,9 @@ public class JudgeRandomDown extends RandomDown {
 			RangeInfo range;
 			long start = System.currentTimeMillis();
 			while (!stopFlag) {
+				distri.showRange();
 				range = distri.getNextRangeInfo();
+				distri.showRange();
 				if (range == null) {
 					// 如果当前为空，则检查是否有失效的资源
 					if (p2sp.checkHasSlowThread()) {
