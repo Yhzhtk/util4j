@@ -93,7 +93,7 @@ public class P2SPShell {
 			urls.add(getNextString(i + ":", "http.*"));
 		}
 
-		String fileName = getNextString("请输入文件名：", "[c-fC-F]:/.*");
+		String fileName = getNextString("请输入文件名：", "([c-fC-F]:)?/.*");
 
 		int i = getNextInt("请输入最大允许的线程数：", 1, 100);
 		P2SPDownload p2sp = new P2SPDownload(urls, fileName, i);
